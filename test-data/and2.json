@@ -1,0 +1,84 @@
+[
+    "Jade",
+    {
+        "/user/AND2": {
+            "test": [
+                [
+                    "test",
+                    "
+.power Vdd=1
+.thresholds Vol=0 Vil=0.1 Vih=0.9 Voh=1
+
+.group inputs in1 in2 // no carry in
+.group outputs out
+
+.mode gate
+
+.cycle assert inputs tran 99n sample outputs tran 1n
+
+00 L
+01 L
+10 L
+11 H
+
+.plot in1 
+.plot in2
+.plot out
+"
+                ]
+            ],
+            "schematic": [
+                [
+                    "/gates/and2",
+                    [
+                        -40,
+                        -176,
+                        0
+                    ]
+                ],
+                [
+                    "port",
+                    [
+                        -40,
+                        -176,
+                        0
+                    ],
+                    {
+                        "signal": "in1"
+                    }
+                ],
+                [
+                    "port",
+                    [
+                        -40,
+                        -160,
+                        0
+                    ],
+                    {
+                        "signal": "in2"
+                    }
+                ],
+                [
+                    "port",
+                    [
+                        8,
+                        -168,
+                        4
+                    ],
+                    {
+                        "direction": "out",
+                        "signal": "out"
+                    }
+                ]
+            ],
+            "properties": {
+                "name": {
+                    "label": "Name",
+                    "value": "",
+                    "type": "name",
+                    "edit": "yes"
+                }
+            }
+        }
+    }
+]
