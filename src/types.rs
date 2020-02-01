@@ -58,8 +58,11 @@ enum Direction {
 
 // ----------------------------------------------------------------------------
 
+#[derive(Debug, PartialEq)]
+pub struct Symbol(pub String);
+
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-enum Sig {
+pub enum Sig {
     SigSimple(String),
     SigIndex(String, i32),
     SigHash(String, i32),
@@ -68,3 +71,4 @@ enum Sig {
     SigQuote(i32, i32),
     SigConcat(Vec<Box<Sig>>),
 }
+pub use Sig::*;
