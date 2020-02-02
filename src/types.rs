@@ -69,6 +69,6 @@ pub enum Sig {
     SigRange(String, i32, i32),
     SigRangeStep(String, i32, i32, i32),
     SigQuote(i32, i32),
-    SigConcat(Vec<Box<Sig>>),
+    SigConcat(Vec<Sig>),
 }
 pub use Sig::*;

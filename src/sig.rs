@@ -1,13 +1,7 @@
 use crate::types::*;
-use regex;
-// parse string into an array of symbols.  Canonicalize all text to lower case.
-//  sig_list := sig[,sig]...
-//  sig := symbol
-//      := sig#count         replicate sig specified number of times
-//      := sig[start:stop:step]   expands to sig[start],sig[start+step],...,sig[end]
-//      := number'size       generate appropriate list of vdd, gnd to represent number
+use regex::Regex;
 
-pub fn symbol(input: &str) -> Option<Sig> {
+pub fn sig_simple(input: &str) -> Option<Sig> {
     let pat = regex::Regex::new(r#"^[a-zA-Z_][a-zA-Z0-9_]*$"#).unwrap();
     if pat.is_match(input) { Some(SigSimple(input.to_string())) } else { None }
 }
@@ -42,26 +36,131 @@ pub fn sig_index(input: &str) -> Option<Sig> {
     }
 }
 
+pub fn sig_range(input: &str) -> Option<Sig> {
+    let pat = regex::Regex::new(r#"(^[a-zA-Z_][a-zA-Z0-9_]*)\[([0-9]+):([0-9]+)\]$"#).unwrap();
+    let caps = pat.captures(input)?;
+    let sym = caps.get(1);
+    let from = caps.get(2);
+    let to = caps.get(3);
+
+    if sym.is_some() && from.is_some() && to.is_some() {
+        let sym = sym.unwrap().as_str().to_string();
+        let from = from.unwrap().as_str().parse::<i32>().unwrap();
+        let to = to.unwrap().as_str().parse::<i32>().unwrap();
+        Some(SigRange(sym, from, to))
+    } else {
+        None
+    }
+}
+
+pub fn sig_range_step(input: &str) -> Option<Sig> {
+    let pat = regex::Regex::new(r#"(^[a-zA-Z_][a-zA-Z0-9_]*)\[([0-9]+):([0-9]+):([0-9]+)\]$"#).unwrap();
+    let caps = pat.captures(input)?;
+    let sym = caps.get(1);
+    let from = caps.get(2);
+    let to = caps.get(3);
+    let step = caps.get(4);
+
+    if sym.is_some() && from.is_some() && to.is_some() {
+        let sym = sym.unwrap().as_str().to_string();
+        let from = from.unwrap().as_str().parse::<i32>().unwrap();
+        let to = to.unwrap().as_str().parse::<i32>().unwrap();
+        let step = step.unwrap().as_str().parse::<i32>().unwrap();
+        Some(SigRangeStep(sym, from, to, step))
+    } else {
+        None
+    }
+}
+
+pub fn general_sig_quote(input: &str, pattern_string: &str, prefix: &str, radix: u32) -> Option<Sig> {
+    let pat = Regex::new(pattern_string).unwrap();
+    let caps = pat.captures(input)?;
+    let numval = caps.get(1);
+    let numbits = caps.get(2);
+
+    if numval.is_some() && numbits.is_some() {
+        let numval = i32::from_str_radix(numval.unwrap().as_str().trim_start_matches(prefix), radix).unwrap();
+        let numbits = numbits.unwrap().as_str().parse::<i32>().unwrap();
+        return Some(SigQuote(numval, numbits));
+    } else {
+        return None;
+    }
+}
+
+pub fn bin_sig_quote(input: &str) -> Option<Sig> {
+    general_sig_quote(input, "^(0b[01]+)'([0-9])$", "0b", 2)
+}
+
+pub fn dec_sig_quote(input: &str) -> Option<Sig> {
+    general_sig_quote(input, "^(0d[0-9]+)'([0-9])$", "0d", 10)
+}
+
+pub fn hex_sig_quote(input: &str) -> Option<Sig> {
+    general_sig_quote(input, "^(0x[0-9A-Fa-f]+)'([0-9])$", "0x", 16)
+}
+
+pub fn implicit_dec_sig_quote(input: &str) -> Option<Sig> {
+    general_sig_quote(input, "^([0-9]+)'([0-9])$", "", 10)
+}
+
+pub fn sig_quote(input: &str) -> Option<Sig> {
+    for f in &[implicit_dec_sig_quote, bin_sig_quote, hex_sig_quote, dec_sig_quote] {
+        let sig = f(input);
+        if sig.is_some() {
+            return sig;
+        }
+    }
+    return None;
+}
+
+pub fn one_of_sig(input: &str) -> Option<Sig> {
+    for f in &[sig_simple, sig_hash, sig_range, sig_range_step, sig_index, sig_quote] {
+        let sig = f(input);
+        if sig.is_some() {
+            return sig;
+        }
+    }
+    return None;
+}
+
+pub fn sig_concat(input: &str) -> Option<Sig> {
+    if !input.contains(",") {
+        // not a concatenation, maybe another signal type.
+        return None;
+    }
+    let mut sigs = vec![];
+    for sigtxt in input.split(",") {
+        let sig = one_of_sig(sigtxt.trim())?;
+        sigs.push(sig);
+    }
+    Some(SigConcat(sigs))
+}
+
+pub fn parse_sig(input: &str) -> Option<Sig> {
+    let sig = one_of_sig(input);
+    if sig.is_some() { sig } else { sig_concat(input) }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     //use crate::types::*;
 
     #[test]
-    fn symbol1() {
+    fn sig_simple1() {
         let expect = SigSimple("ABC123".to_string());
-        let got = symbol("ABC123").unwrap();
+        let got = sig_simple("ABC123").unwrap();
         assert_eq!(expect, got);
     }
     #[test]
-    fn symbol2() {
+    fn sig_simple2() {
         let expect = SigSimple("_ABC123".to_string());
-        let got = symbol("_ABC123").unwrap();
+        let got = sig_simple("_ABC123").unwrap();
         assert_eq!(expect, got);
     }
     #[test]
-    fn symbol3() {
-        let got = symbol("#$%^9_ABC123");
+    fn sig_simple3() {
+        let got = sig_simple("#$%^9_ABC123");
         let expect = None;
         assert_eq!(got, expect);
     }
@@ -125,6 +224,124 @@ mod tests {
     #[test]
     fn sig_index5() {
         let got = sig_index("9_asdf456[123]");
+        let expect = None;
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn sig_range2() {
+        let got = sig_range("asdf[32:12]");
+        let expect = Some(SigRange("asdf".to_string(), 32, 12));
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn sig_range3() {
+        let got = sig_range("asdf[00123:56]");
+        let expect = Some(SigRange("asdf".to_string(), 123, 56));
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn sig_range4() {
+        let got = sig_range("_asdf456[123:0]");
+        let expect = Some(SigRange("_asdf456".to_string(), 123, 0));
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn sig_range5() {
+        let got = sig_range("9_asdf456[123:23]");
+        let expect = None;
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn sig_range_step2() {
+        let got = sig_range_step("asdf[32:12:2]");
+        let expect = Some(SigRangeStep("asdf".to_string(), 32, 12, 2));
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn sig_range_step3() {
+        let got = sig_range_step("asdf[00123:56:4]");
+        let expect = Some(SigRangeStep("asdf".to_string(), 123, 56, 4));
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn sig_range_step4() {
+        let got = sig_range_step("_asdf456[123:0:5]");
+        let expect = Some(SigRangeStep("_asdf456".to_string(), 123, 0, 5));
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn sig_range_step5() {
+        let got = sig_range_step("9_asdf456[123:23:6]");
+        let expect = None;
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn sig_quote1() {
+        let got = bin_sig_quote("0b1010'4");
+        let expect = Some(SigQuote(10, 4));
+        assert_eq!(got, expect);
+    }
+    #[test]
+    fn sig_quote11() {
+        let got = sig_quote("0b1010'4");
+        let expect = Some(SigQuote(10, 4));
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn sig_quote2() {
+        let got = hex_sig_quote("0xFF'4");
+        let expect = Some(SigQuote(0xFF, 4));
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn sig_quote3() {
+        let got = implicit_dec_sig_quote("10'4");
+        let expect = Some(SigQuote(10, 4));
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn sig_quote4() {
+        let got = sig_quote("10'4");
+        let expect = Some(SigQuote(10, 4));
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn sig_quote5() {
+        let got = sig_quote("0x12'4");
+        let expect = Some(SigQuote(0x12, 4));
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn sig_concat1() {
+        let got = sig_concat("0x12'4, 0x12'4");
+        let expect = Some(SigConcat(vec![SigQuote(0x12, 4), SigQuote(0x12, 4)]));
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn sig_concat2() {
+        let got = sig_concat("0x12'4, _asdf456[123:0:5]");
+        let expect = Some(SigConcat(vec![SigQuote(0x12, 4), sig_range_step("_asdf456[123:0:5]").unwrap()]));
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn sig_concat3() {
+        let got = one_of_sig("0x12'4, _asdf456[123:0:5]");
         let expect = None;
         assert_eq!(got, expect);
     }
