@@ -9,82 +9,46 @@ pub fn sig_simple(input: &str) -> Option<Sig> {
 pub fn sig_hash(input: &str) -> Option<Sig> {
     let pat = regex::Regex::new(r#"(^[a-zA-Z_][a-zA-Z0-9_]*)#([0-9]+)$"#).unwrap();
     let caps = pat.captures(input)?;
-    let sym = caps.get(1);
-    let size = caps.get(2);
-
-    if sym.is_some() && size.is_some() {
-        let sym = sym.unwrap().as_str().to_string();
-        let size = size.unwrap().as_str().parse::<i32>().unwrap();
-        return Some(SigHash(sym, size));
-    } else {
-        return None;
-    }
+    let sym = caps.get(1)?.as_str().to_string();
+    let size = caps.get(2)?.as_str().parse::<i32>().unwrap();
+    return Some(SigHash(sym, size));
 }
 
 pub fn sig_index(input: &str) -> Option<Sig> {
     let pat = regex::Regex::new(r#"(^[a-zA-Z_][a-zA-Z0-9_]*)\[([0-9]+)\]$"#).unwrap();
     let caps = pat.captures(input)?;
-    let sym = caps.get(1);
-    let idx = caps.get(2);
-
-    if sym.is_some() && idx.is_some() {
-        let sym = sym.unwrap().as_str().to_string();
-        let size = idx.unwrap().as_str().parse::<i32>().unwrap();
-        return Some(SigIndex(sym, size));
-    } else {
-        return None;
-    }
+    let sym = caps.get(1)?.as_str().to_string();
+    let idx = caps.get(2)?.as_str().parse::<i32>().unwrap();
+    return Some(SigIndex(sym, idx));
 }
 
 pub fn sig_range(input: &str) -> Option<Sig> {
     let pat = regex::Regex::new(r#"(^[a-zA-Z_][a-zA-Z0-9_]*)\[([0-9]+):([0-9]+)\]$"#).unwrap();
     let caps = pat.captures(input)?;
-    let sym = caps.get(1);
-    let from = caps.get(2);
-    let to = caps.get(3);
-
-    if sym.is_some() && from.is_some() && to.is_some() {
-        let sym = sym.unwrap().as_str().to_string();
-        let from = from.unwrap().as_str().parse::<i32>().unwrap();
-        let to = to.unwrap().as_str().parse::<i32>().unwrap();
-        Some(SigRange(sym, from, to))
-    } else {
-        None
-    }
+    let sym = caps.get(1)?.as_str().to_string();
+    let from = caps.get(2)?.as_str().parse::<i32>().unwrap();
+    let to = caps.get(3)?.as_str().parse::<i32>().unwrap();
+    Some(SigRange(sym, from, to))
 }
 
 pub fn sig_range_step(input: &str) -> Option<Sig> {
     let pat = regex::Regex::new(r#"(^[a-zA-Z_][a-zA-Z0-9_]*)\[([0-9]+):([0-9]+):([0-9]+)\]$"#).unwrap();
     let caps = pat.captures(input)?;
-    let sym = caps.get(1);
-    let from = caps.get(2);
-    let to = caps.get(3);
-    let step = caps.get(4);
-
-    if sym.is_some() && from.is_some() && to.is_some() {
-        let sym = sym.unwrap().as_str().to_string();
-        let from = from.unwrap().as_str().parse::<i32>().unwrap();
-        let to = to.unwrap().as_str().parse::<i32>().unwrap();
-        let step = step.unwrap().as_str().parse::<i32>().unwrap();
-        Some(SigRangeStep(sym, from, to, step))
-    } else {
-        None
-    }
+    let sym = caps.get(1)?.as_str().to_string();
+    let from = caps.get(2)?.as_str().parse::<i32>().unwrap();
+    let to = caps.get(3)?.as_str().parse::<i32>().unwrap();
+    let step = caps.get(4)?.as_str().parse::<i32>().unwrap();
+    Some(SigRangeStep(sym, from, to, step))
 }
 
 pub fn general_sig_quote(input: &str, pattern_string: &str, prefix: &str, radix: u32) -> Option<Sig> {
     let pat = Regex::new(pattern_string).unwrap();
     let caps = pat.captures(input)?;
-    let numval = caps.get(1);
-    let numbits = caps.get(2);
-
-    if numval.is_some() && numbits.is_some() {
-        let numval = i32::from_str_radix(numval.unwrap().as_str().trim_start_matches(prefix), radix).unwrap();
-        let numbits = numbits.unwrap().as_str().parse::<i32>().unwrap();
-        return Some(SigQuote(numval, numbits));
-    } else {
-        return None;
-    }
+    let numval = caps.get(1)?;
+    let numbits = caps.get(2)?;
+    let numval = i32::from_str_radix(numval.as_str().trim_start_matches(prefix), radix).unwrap();
+    let numbits = numbits.as_str().parse::<i32>().unwrap();
+    return Some(SigQuote(numval, numbits));
 }
 
 pub fn bin_sig_quote(input: &str) -> Option<Sig> {
