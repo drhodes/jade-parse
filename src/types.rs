@@ -26,6 +26,22 @@ pub struct Coord3 {
     pub r: Rot,
 }
 
+// -----------------------------------------------------------------------------
+#[derive(Debug, PartialEq)]
+pub struct Wire {
+    pub coord5: Coord5,
+    pub signal: Option<Signal>,
+}
+
+// -----------------------------------------------------------------------------
+#[derive(Debug, PartialEq, Default)]
+pub struct Signal {
+    pub sig: Option<Sig>,
+    pub width: u64,
+    pub direction: Option<Direction>,
+    // pub net_signal: Option<Box<Signal>>, not sure what this is about.
+}
+
 // ----------------------------------------------------------------------------
 #[derive(Debug, PartialEq)]
 pub struct Line {
