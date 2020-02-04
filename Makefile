@@ -44,7 +44,7 @@ clean: ## clean all the things
 	bash clean.bash
 
 work: ## open all files in editor		 
-	emacs -nw Makefile `find . -name '*rs'` Cargo* readme.org browser/Cargo*
+	emacs -nw Makefile `find . -name '*rs'` Cargo* README.org
 
 # http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 .PHONY: help
