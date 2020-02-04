@@ -64,20 +64,19 @@ pub enum Rot {
 pub use Rot::*;
 
 // -----------------------------------------------------------------------------
-#[derive(Serialize_repr, Deserialize_repr, PartialEq, Debug)]
-#[repr(u8)]
-enum Direction {
-    In = 0,
-    Out = 1,
-    InOut = 2,
+#[derive(Debug, PartialEq)]
+pub enum Direction {
+    In,
+    Out,
+    InOut,
 }
+pub use Direction::*;
 
 // ----------------------------------------------------------------------------
-
 #[derive(Debug, PartialEq)]
 pub struct Symbol(pub String);
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq)]
 pub enum Sig {
     SigSimple(String),
     SigIndex(String, i32),
