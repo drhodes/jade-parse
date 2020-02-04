@@ -1,6 +1,8 @@
 use crate::types::*;
 use regex::Regex;
 
+// these should all be Result instead of Option for error messages.
+
 pub fn sig_simple(input: &str) -> Option<Sig> {
     let pat = regex::Regex::new(r#"^[a-zA-Z_][a-zA-Z0-9_]*$"#).unwrap();
     if pat.is_match(input) { Some(SigSimple(input.to_string())) } else { None }

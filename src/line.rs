@@ -1,12 +1,5 @@
 use crate::types::*;
 use serde_json::Value;
-// use std::error::Error;
-
-// type E<T> = Result<T, Box<dyn Error>>;
-
-// fn err<T>(msg: &str) -> Result<T, Box<dyn Error>> {
-//     Err(From::from(msg.to_string()))
-// }
 
 impl Line {
     pub fn from_value(val: Value) -> E<Line> {

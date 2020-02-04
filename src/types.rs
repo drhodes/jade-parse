@@ -19,12 +19,19 @@ pub struct Coord5 {
 }
 
 // -----------------------------------------------------------------------------
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq)]
 pub struct Coord3 {
     pub x: u32,
     pub y: u32,
     pub r: Rot,
 }
+
+// -----------------------------------------------------------------------------
+// "schematic":[
+//               ["/gates/buffer", [-16,-32,0]],
+//               ["wire",[-16,-32,0,-8,0],{"signal":"A"}],
+//               ["wire",[16,-32,0,8,0],{"signal":"vout"}]]
+//
 
 // -----------------------------------------------------------------------------
 #[derive(Debug, PartialEq)]
