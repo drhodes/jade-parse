@@ -15,21 +15,47 @@ impl Signal {
                 }
             }
             if let Some(Value::Number(width)) = o.get("width") {
-                signal.width = width.as_u64().unwrap_or(1);
+                signal.width = width.as_u64()
             }
-            if let Some(Value::String(dir)) = o.get("direction") {
-                signal.direction = match dir.as_str() {
-                    "in" => Some(In),
-                    "out" => Some(Out),
-                    "inout" => Some(InOut),
-                    _ => {
-                        return err(format!("Got a bad signal direction: {:?}", dir).as_str());
-                    }
-                }
+            if let Some(dir) = o.get("direction") {
+                signal.direction = Some(Direction::from_value(dir.clone())?);
             }
+            return Ok(signal);
         } else {
-            return err("not a signal");
+            return err(format!("in signal parse, expected object, got: {:?}", val).as_str());
         }
-        return err("not a signal");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn signal1() {
+        let val = json!({"signal":"out[2:0]","direction":"out"});
+        let got = Signal::from_value(val).unwrap();
+        let expected =
+            Signal { sig: Some(Sig::SigRange("out".to_string(), 2, 0)), width: None, direction: Some(Out) };
+        assert_eq!(got, expected);
+    }
+
+    #[test]
+    fn signal2() {
+        let val = json!({"signal":"out[2:0]"});
+        let got = Signal::from_value(val).unwrap();
+        let expected =
+            Signal { sig: Some(Sig::SigRange("out".to_string(), 2, 0)), width: None, direction: None };
+        assert_eq!(got, expected);
+    }
+
+    #[test]
+    fn signal3() {
+        let val = json!({"signal":"out[2:0]"});
+        let got = Signal::from_value(val).unwrap();
+        let expected =
+            Signal { sig: Some(Sig::SigRange("out".to_string(), 2, 0)), width: None, direction: None };
+        assert_eq!(got, expected);
     }
 }

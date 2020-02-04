@@ -44,7 +44,7 @@ pub struct Wire {
 #[derive(Debug, PartialEq, Default)]
 pub struct Signal {
     pub sig: Option<Sig>,
-    pub width: u64,
+    pub width: Option<u64>,
     pub direction: Option<Direction>,
     // pub net_signal: Option<Box<Signal>>, not sure what this is about.
 }
