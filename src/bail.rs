@@ -25,6 +25,13 @@ macro_rules! bail {
 }
 
 #[macro_export]
+macro_rules! bailfmt {
+    ($msg:expr, $tup:expr) => {
+        bail!(format!($msg, $tup));
+    };
+}
+
+#[macro_export]
 macro_rules! bailif {
     ($ebail:expr, $msg:expr) => {
         if $ebail.is_err() { bail!($ebail, $msg) } else { $ebail }
