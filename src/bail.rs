@@ -24,6 +24,13 @@ macro_rules! bail {
     };
 }
 
+#[macro_export]
+macro_rules! bailif {
+    ($ebail:expr, $msg:expr) => {
+        if $ebail.is_err() { bail!($ebail, $msg) } else { $ebail }
+    };
+}
+
 pub struct Bail {
     pub line: u32, // line number
     pub col: u32,  //
