@@ -92,3 +92,11 @@ pub enum Sig {
     SigConcat(Vec<Sig>),
 }
 pub use Sig::*;
+
+#[derive(Debug, PartialEq)]
+pub struct Circle {
+    pub x: u32,
+    pub y: u32,
+    pub rot: Rot,
+    pub radius: f64,
+}
