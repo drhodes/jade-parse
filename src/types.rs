@@ -100,3 +100,10 @@ pub struct Circle {
     pub rot: Rot,
     pub radius: f64,
 }
+
+#[derive(Debug, PartialEq)]
+pub struct Text {
+    pub coord3: Coord3,
+    pub text: String,
+    pub font: Option<String>,
+}
