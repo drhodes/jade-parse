@@ -8,12 +8,10 @@ impl Direction {
                 "in" => return Ok(In),
                 "out" => return Ok(Out),
                 "inout" => return Ok(InOut),
-                _ => {
-                    return err(format!("Got a bad signal direction: {:?}", dir).as_str());
-                }
+                _ => bail!(format!("Got a bad signal direction: {:?}", dir).as_str()),
             }
         } else {
-            return err("not a signal direction");
+            bail!("not a signal direction")
         }
     }
 }

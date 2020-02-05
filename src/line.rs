@@ -6,15 +6,15 @@ impl Line {
         match val {
             Value::Array(v) => {
                 if v.len() != 2 {
-                    return err("line expects array with two args");
+                    return bail!("line expects array with two args");
                 }
                 if v[0] != Value::String("line".to_string()) {
-                    return err("Line expects first array element to be the string 'line'");
+                    return bail!("Line expects first array element to be the string 'line'");
                 }
                 let c: Coord5 = serde_json::from_value(v[1].clone())?;
                 Ok(Line { coord: c })
             }
-            _ => err("line expects array with two args"),
+            _ => bail!("line expects array with two args"),
         }
     }
 }

@@ -1,12 +1,10 @@
+pub use crate::bail::*;
+
 use serde::{Deserialize, Serialize};
 use serde_repr::*;
 use std::error::Error;
-
-pub type E<T> = Result<T, Box<dyn Error>>;
-
-pub fn err<T>(msg: &str) -> Result<T, Box<dyn Error>> {
-    Err(From::from(msg.to_string()))
-}
+use std::fmt;
+use std::fmt::Debug;
 
 // -----------------------------------------------------------------------------
 #[derive(Serialize, Deserialize, Debug, PartialEq)]

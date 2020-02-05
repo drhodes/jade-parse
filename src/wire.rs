@@ -7,7 +7,7 @@ impl Wire {
     pub fn from_value(val: Value) -> E<Wire> {
         if let Value::Array(xs) = val.clone() {
             if xs[0] != "wire" {
-                return err("not a wire");
+                return bail!("not a wire");
             }
             let coord5 = serde_json::from_value(xs[1].clone())?;
             if xs.len() == 2 {
@@ -17,9 +17,10 @@ impl Wire {
                 let s = Signal::from_value(val)?;
                 return Ok(Wire { coord5, signal: Some(s) });
             }
-            return err(format!("HUH. json wire array has more than 3 elements: {:?}", xs.len()).as_str());
+            return bail!(format!("HUH. json wire array has more than 3 elements: {:?}", xs.len()).as_str());
         } else {
-            return err("not a wire");
+            let e: E<Wire> = bail!("not a wire");
+            return bail!("not a wire");
         }
     }
 }

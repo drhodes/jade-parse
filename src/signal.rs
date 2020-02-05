@@ -1,4 +1,6 @@
 use crate::sig;
+
+#[macro_use]
 use crate::types::*;
 use serde_json::Value;
 
@@ -11,7 +13,7 @@ impl Signal {
                 if let Some(sig) = sig::parse_sig(sig_string) {
                     signal.sig = Some(sig);
                 } else {
-                    return err(format!("Can't parse signal string: {:?}", sig_string).as_str());
+                    return bail!(format!("Can't parse signal string: {:?}", sig_string).as_str());
                 }
             }
             if let Some(Value::Number(width)) = o.get("width") {
@@ -22,13 +24,14 @@ impl Signal {
             }
             return Ok(signal);
         } else {
-            return err(format!("in signal parse, expected object, got: {:?}", val).as_str());
+            return bail!(format!("in signal parse, expected object, got: {:?}", val).as_str());
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    #[macro_use]
     use super::*;
     use serde_json::json;
 
