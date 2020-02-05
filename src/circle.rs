@@ -1,11 +1,12 @@
 use crate::common::*;
 use crate::types::*;
 use serde_json::Value;
+use std::slice::Iter;
 
 impl Circle {
     pub fn from_value(val: Value) -> E<Circle> {
-        let val = bailif!(tagged_array("circle", &val), "Circle::from_value failes to decode")?;
-        if let Value::Array(v) = val {
+        let mut val = bailif!(tagged_array("circle", &val), "Circle::from_value failes to decode")?;
+        if let Some(Value::Array(v)) = val.next() {
             if v.len() != 4 {
                 bail!(format!("circle expected array of 4 numbers, got: {:?}", v).as_str())
             } else {
