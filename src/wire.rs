@@ -17,7 +17,7 @@ impl Wire {
                 let s = Signal::from_value(val)?;
                 return Ok(Wire { coord5, signal: Some(s) });
             }
-            return bail!(format!("HUH. json wire array has more than 3 elements: {:?}", xs.len()).as_str());
+            return bailfmt!("HUH. json wire array has more than 3 elements: {:?}", xs.len());
         } else {
             let e: E<Wire> = bail!("not a wire");
             return bail!("not a wire");

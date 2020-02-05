@@ -26,8 +26,11 @@ macro_rules! bail {
 
 #[macro_export]
 macro_rules! bailfmt {
-    ($msg:expr, $tup:expr) => {
-        bail!(format!($msg, $tup));
+    ($msg:expr, $e:expr) => {
+        bail!(format!($msg, $e));
+    };
+    ($msg:expr, $e1:expr, $e2:expr) => {
+        bail!(format!($msg, $e1, $e2));
     };
 }
 

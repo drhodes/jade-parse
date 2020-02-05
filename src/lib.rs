@@ -13,3 +13,4 @@ pub mod types;
 pub mod wire;
 
 pub mod circle;
+pub mod text;

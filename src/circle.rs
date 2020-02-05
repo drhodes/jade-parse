@@ -8,7 +8,7 @@ impl Circle {
         let mut val = bailif!(tagged_array("circle", &val), "Circle::from_value failes to decode")?;
         if let Some(Value::Array(v)) = val.next() {
             if v.len() != 4 {
-                bail!(format!("circle expected array of 4 numbers, got: {:?}", v).as_str())
+                bailfmt!("circle expected array of 4 numbers, got: {:?}", v)
             } else {
                 let x: u32 = serde_json::from_value(v[0].clone())?;
                 let y: u32 = serde_json::from_value(v[1].clone())?;
@@ -17,7 +17,7 @@ impl Circle {
                 Ok(Circle { x, y, rot, radius })
             }
         } else {
-            bail!(format!("circle expected array, got: {:?}", val).as_str())
+            bailfmt!("circle expected array, got: {:?}", val)
         }
     }
 }

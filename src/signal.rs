@@ -13,7 +13,7 @@ impl Signal {
                 if let Some(sig) = sig::parse_sig(sig_string) {
                     signal.sig = Some(sig);
                 } else {
-                    return bail!(format!("Can't parse signal string: {:?}", sig_string).as_str());
+                    return bailfmt!("Can't parse signal string: {:?}", sig_string);
                 }
             }
             if let Some(Value::Number(width)) = o.get("width") {
@@ -24,7 +24,7 @@ impl Signal {
             }
             return Ok(signal);
         } else {
-            return bail!(format!("in signal parse, expected object, got: {:?}", val).as_str());
+            return bailfmt!("in signal parse, expected object, got: {:?}", val);
         }
     }
 }

@@ -8,7 +8,7 @@ impl Direction {
                 "in" => return Ok(In),
                 "out" => return Ok(Out),
                 "inout" => return Ok(InOut),
-                _ => bail!(format!("Got a bad signal direction: {:?}", dir).as_str()),
+                _ => bailfmt!("Got a bad signal direction: {:?}", dir),
             }
         } else {
             bail!("not a signal direction")
