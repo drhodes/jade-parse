@@ -105,5 +105,18 @@ pub struct Circle {
 pub struct Text {
     pub coord3: Coord3,
     pub text: String,
+    // TODO: "align": "center", add this field
     pub font: Option<String>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Port {
+    pub coord3: Coord3,
+    pub signal: Option<Signal>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Terminal {
+    pub coord3: Coord3,
+    pub sig: Sig,
 }

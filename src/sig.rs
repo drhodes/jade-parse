@@ -1,6 +1,6 @@
 use crate::types::*;
 use regex::Regex;
-//use serde_json::Value;
+use serde_json::Value;
 
 // these should all be Result instead of Option for error messages.
 
@@ -108,19 +108,19 @@ pub fn parse_sig(input: &str) -> Option<Sig> {
     if sig.is_some() { sig } else { sig_concat(input) }
 }
 
-// impl Sig {
-//     pub fn from_value(val: Value) -> E<Sig> {
-//         if let Value::String(sig_string) = val -> E<Sig> {
-//             if let Some(sig) = parse_sig(sig_string) {
-//                 return Ok(sig);
-//             } else {
-//                 return err(format!("error parsing signal string: {:?}", sig_string));
-//             }
-//         } else {
-//             return err("format!("Sig::from_valueexpected string, got: {:?}",
-//         }
-//     }
-// }
+impl Sig {
+    pub fn from_value(val: Value) -> E<Sig> {
+        if let Value::String(sig_string) = val {
+            if let Some(sig) = parse_sig(sig_string.as_str()) {
+                Ok(sig)
+            } else {
+                bailfmt!("error parsing sig string: {:?}", sig_string)
+            }
+        } else {
+            bailfmt!("Sig::from_value expected string, got: {:?}", val)
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
