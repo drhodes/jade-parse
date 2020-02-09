@@ -4,7 +4,7 @@ use serde_json::Value;
 // ["wire" Coord5 Signal?]
 
 impl Wire {
-    pub fn from_value(val: Value) -> E<Wire> {
+    pub fn from_value(val: &Value) -> E<Wire> {
         if let Value::Array(xs) = val.clone() {
             if xs[0] != "wire" {
                 return bail!("not a wire");

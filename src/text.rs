@@ -5,7 +5,7 @@ use crate::types::*;
 use std::convert::From;
 
 impl Text {
-    pub fn from_value(val: Value) -> E<Text> {
+    pub fn from_value(val: &Value) -> E<Text> {
         let mut val_iter = bailif!(tagged_array("text", &val), "Text::from_value failes to decode")?;
 
         let coord3: Coord3 = match val_iter.next() {
@@ -56,7 +56,7 @@ mod tests {
                             text: "memories of green".to_string(),
                             font: Some("bladerunner".to_string()) };
         let val = json!(["text", [0,0,0], {"text": "memories of green", "font": "bladerunner"}]);
-        let got: Text = Text::from_value(val).unwrap();
+        let got: Text = Text::from_value(&val).unwrap();
         assert_eq!(expect, got);
     }
 
@@ -65,7 +65,7 @@ mod tests {
         let coord3 = Coord3 { x: 1, y: 2, r: Rot0 };
         let expect = Text { coord3: coord3, text: "memories of green".to_string(), font: None };
         let val = json!(["text", [1,2,0], {"text": "memories of green"}]);
-        let got: Text = Text::from_value(val).unwrap();
+        let got: Text = Text::from_value(&val).unwrap();
         assert_eq!(expect, got);
     }
 }

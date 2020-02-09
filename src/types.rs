@@ -7,6 +7,44 @@ use std::fmt;
 use std::fmt::Debug;
 
 // -----------------------------------------------------------------------------
+#[derive(Debug)]
+pub struct Module {
+    pub name: String,
+    pub properties: u8,
+    pub schematic: Schematic,
+    pub icon: u8,
+    pub test: u8,
+}
+
+pub struct Properties;
+
+#[derive(Debug)]
+pub struct Schematic {
+    parts: Vec<Part>,
+}
+
+pub struct Icon;
+
+pub struct Test;
+
+#[derive(Debug, PartialEq)]
+pub enum Part {
+    Port(Port),
+    SubModule(SubModule),
+    Wire(Wire),
+    Jumper(Jumper),
+    Terminal(Terminal),
+    Text(Text),
+}
+
+// -----------------------------------------------------------------------------
+#[derive(Debug, PartialEq)]
+pub struct SubModule {
+    pub name: String,
+    pub coord3: Coord3,
+}
+
+// -----------------------------------------------------------------------------
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Coord5 {
     pub x: u32,
@@ -25,17 +63,16 @@ pub struct Coord3 {
 }
 
 // -----------------------------------------------------------------------------
-// "schematic":[
-//               ["/gates/buffer", [-16,-32,0]],
-//               ["wire",[-16,-32,0,-8,0],{"signal":"A"}],
-//               ["wire",[16,-32,0,8,0],{"signal":"vout"}]]
-//
-
-// -----------------------------------------------------------------------------
 #[derive(Debug, PartialEq)]
 pub struct Wire {
     pub coord5: Coord5,
     pub signal: Option<Signal>,
+}
+
+// -----------------------------------------------------------------------------
+#[derive(Debug, PartialEq)]
+pub struct Jumper {
+    pub coord3: Coord3,
 }
 
 // -----------------------------------------------------------------------------

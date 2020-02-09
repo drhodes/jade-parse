@@ -5,7 +5,7 @@ use crate::types::*;
 use serde_json::Value;
 
 impl Signal {
-    pub fn from_value(val: Value) -> E<Signal> {
+    pub fn from_value(val: &Value) -> E<Signal> {
         if let Value::Object(o) = val {
             let mut signal = Signal::default();
 
@@ -38,7 +38,7 @@ mod tests {
     #[test]
     fn signal1() {
         let val = json!({"signal":"out[2:0]","direction":"out"});
-        let got = Signal::from_value(val).unwrap();
+        let got = Signal::from_value(&val).unwrap();
         let expected =
             Signal { sig: Some(Sig::SigRange("out".to_string(), 2, 0)), width: None, direction: Some(Out) };
         assert_eq!(got, expected);
@@ -47,7 +47,7 @@ mod tests {
     #[test]
     fn signal2() {
         let val = json!({"signal":"out[2:0]"});
-        let got = Signal::from_value(val).unwrap();
+        let got = Signal::from_value(&val).unwrap();
         let expected =
             Signal { sig: Some(Sig::SigRange("out".to_string(), 2, 0)), width: None, direction: None };
         assert_eq!(got, expected);
@@ -56,7 +56,7 @@ mod tests {
     #[test]
     fn signal3() {
         let val = json!({"signal":"out[2:0]"});
-        let got = Signal::from_value(val).unwrap();
+        let got = Signal::from_value(&val).unwrap();
         let expected =
             Signal { sig: Some(Sig::SigRange("out".to_string(), 2, 0)), width: None, direction: None };
         assert_eq!(got, expected);

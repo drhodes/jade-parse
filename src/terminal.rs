@@ -5,7 +5,7 @@ use crate::sig;
 use crate::types::*;
 
 impl Terminal {
-    pub fn from_value(val: Value) -> E<Terminal> {
+    pub fn from_value(val: &Value) -> E<Terminal> {
         let mut val_iter = bailif!(tagged_array("terminal", &val), "Terminal::from_value failes to decode")?;
 
         let coord3: Coord3 = match val_iter.next() {
@@ -36,21 +36,21 @@ mod tests {
     #[test]
     fn terminal1() {
         let val = json!(["terminal", [0, 0, 0], "A[3:0]"]);
-        let got = Terminal::from_value(val);
+        let got = Terminal::from_value(&val);
         assert!(got.is_ok());
     }
 
     #[test]
     fn terminal2() {
         let val = json!(["terminal", [0, 0, 0, 0], "A[3:0]"]);
-        let got = Terminal::from_value(val);
+        let got = Terminal::from_value(&val);
         assert!(got.is_err());
     }
 
     #[test]
     fn terminal3() {
         let val = json!(["terminal", [0, 0, 0], ""]);
-        let got = Terminal::from_value(val);
+        let got = Terminal::from_value(&val);
         assert!(got.is_err());
     }
 }
