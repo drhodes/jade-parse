@@ -6,11 +6,14 @@
 pub mod bail;
 pub mod common;
 
+//pub mod project;
+
 // schematic
 pub mod dir;
 pub mod jumper;
 pub mod line;
 pub mod part;
+pub mod schematic;
 pub mod sig;
 pub mod signal;
 pub mod submodule;

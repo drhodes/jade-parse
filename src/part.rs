@@ -4,24 +4,24 @@ use crate::common::*;
 use crate::types::*;
 
 impl Part {
-    pub fn from_value(val: Value) -> E<Part> {
-        if let x = Wire::from_value(&val)? {
+    pub fn from_value(val: &Value) -> E<Part> {
+        if let Ok(x) = Wire::from_value(val) {
             return Ok(Part::Wire(x));
         }
-        if let x = Port::from_value(&val)? {
+        if let Ok(x) = Port::from_value(val) {
             return Ok(Part::Port(x));
         }
-        if let x = Terminal::from_value(&val)? {
+        if let Ok(x) = Terminal::from_value(val) {
             return Ok(Part::Terminal(x));
         }
-        if let x = SubModule::from_value(&val)? {
-            return Ok(Part::SubModule(x));
-        }
-        if let x = Jumper::from_value(&val)? {
+        if let Ok(x) = Jumper::from_value(val) {
             return Ok(Part::Jumper(x));
         }
-        if let x = Text::from_value(&val)? {
+        if let Ok(x) = Text::from_value(val) {
             return Ok(Part::Text(x));
+        }
+        if let Ok(x) = SubModule::from_value(val) {
+            return Ok(Part::SubModule(x));
         }
         bailfmt!("Part::from_value finds unknown part: {:?}", val)
     }

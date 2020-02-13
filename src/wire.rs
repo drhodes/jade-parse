@@ -14,13 +14,40 @@ impl Wire {
                 return Ok(Wire { coord5, signal: None });
             }
             if xs.len() == 3 {
-                let s = Signal::from_value(val)?;
+                let s = Signal::from_value(&val[2])?;
                 return Ok(Wire { coord5, signal: Some(s) });
             }
             return bailfmt!("HUH. json wire array has more than 3 elements: {:?}", xs.len());
         } else {
             let e: E<Wire> = bail!("not a wire");
             return bail!("not a wire");
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// TESTS
+// -----------------------------------------------------------------------------
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn wire1() {
+        let val = json!( ["wire", [-80,-192,0,0,152],{"signal":"A[3]"}] );
+        let got = Wire::from_value(&val);
+        if got.is_err() {
+            panic!("{:?}", got)
+        }
+    }
+
+    #[test]
+    fn wire2() {
+        let val = json!(["wire", [136,-192,0,0,104],{"signal":"A [0]"}]);
+        let got = Wire::from_value(&val);
+        if got.is_err() {
+            panic!("{:?}", got)
         }
     }
 }

@@ -1,6 +1,6 @@
 use serde_json::{json, Value};
 
-fn garr_inc_4_json() -> Value {
+pub fn garr_inc_4_json() -> Value {
     // this json macro is slick.
     json!(["Jade", {"/user/GarrInc4":
                     {"properties":{"name":{"edit":"yes","type":"name","value":"","label":"Name"}},

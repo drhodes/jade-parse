@@ -5,8 +5,15 @@ use serde_repr::*;
 use std::error::Error;
 use std::fmt;
 use std::fmt::Debug;
+use std::path;
 
 // -----------------------------------------------------------------------------
+#[derive(Debug)]
+pub struct Project {
+    pub modules: Vec<Module>,
+    pub filename: path::Path,
+}
+
 #[derive(Debug)]
 pub struct Module {
     pub name: String,
@@ -20,7 +27,7 @@ pub struct Properties;
 
 #[derive(Debug)]
 pub struct Schematic {
-    parts: Vec<Part>,
+    pub parts: Vec<Part>,
 }
 
 pub struct Icon;
@@ -30,11 +37,12 @@ pub struct Test;
 #[derive(Debug, PartialEq)]
 pub enum Part {
     Port(Port),
-    SubModule(SubModule),
     Wire(Wire),
     Jumper(Jumper),
     Terminal(Terminal),
     Text(Text),
+    // match submodule last.
+    SubModule(SubModule),
 }
 
 // -----------------------------------------------------------------------------
@@ -47,18 +55,18 @@ pub struct SubModule {
 // -----------------------------------------------------------------------------
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Coord5 {
-    pub x: u32,
-    pub y: u32,
+    pub x: i32,
+    pub y: i32,
     pub r: Rot,
-    pub dx: u32,
-    pub dy: u32,
+    pub dx: i32,
+    pub dy: i32,
 }
 
 // -----------------------------------------------------------------------------
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct Coord3 {
-    pub x: u32,
-    pub y: u32,
+    pub x: i32,
+    pub y: i32,
     pub r: Rot,
 }
 

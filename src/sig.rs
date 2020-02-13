@@ -104,6 +104,9 @@ pub fn sig_concat(input: &str) -> Option<Sig> {
 }
 
 pub fn parse_sig(input: &str) -> Option<Sig> {
+    // either remove the whitespace here, or change the regexes to expect whitespace.
+    let input = &input.replace(" ", "");
+
     let sig = one_of_sig(input);
     if sig.is_some() { sig } else { sig_concat(input) }
 }

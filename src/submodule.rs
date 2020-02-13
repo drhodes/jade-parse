@@ -22,14 +22,12 @@ impl SubModule {
                 }
                 s.clone()
             }
-            _ => return bailfmt!("submodule expected module name as first arg, got: {:?}", arr[0]),
+            _ => return bailfmt!("submodule expected module name as first item, got: {:?}", arr[0]),
         };
 
-        if let Ok(coord3) = serde_json::from_value::<Coord3>(arr[1].clone()) {
-            return Ok(SubModule { name, coord3 });
-        } else {
-            return bailfmt!("submodule expects 2 elements, a location and properties object, got: {:?}",
-                            arr[1]);
+        match serde_json::from_value::<Coord3>(arr[1].clone()) {
+            Ok(coord3) => return Ok(SubModule { name, coord3 }),
+            Err(msg) => return bailfmt!("submodule fails to decode location, with error: {:?}", msg),
         }
     }
 }
@@ -56,6 +54,15 @@ mod tests {
 
         if got.is_ok() {
             panic!("{:?}", got);
+        }
+    }
+
+    #[test]
+    fn subModule3() {
+        let val = json!(["/gates/xor2", [-64, 128, 1]]);
+        let got = SubModule::from_value(&val);
+        if got.is_err() {
+            panic!("{:?}", got)
         }
     }
 }
