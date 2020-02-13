@@ -2,7 +2,7 @@ use crate::types::*;
 use serde_json::Value;
 
 impl Line {
-    pub fn from_value(val: Value) -> E<Line> {
+    pub fn from_value(val: &Value) -> E<Line> {
         match val {
             Value::Array(v) => {
                 if v.len() != 2 {
@@ -40,7 +40,7 @@ mod tests {
         let expect = Line { coord: Coord5 { x: 1, y: 2, r: Rot::Rot270, dx: 3, dy: 4 } };
         let s = r#"["line", [1, 2, 1, 3, 4]]"#;
         let v: Value = serde_json::from_str(s).unwrap();
-        let got: Line = Line::from_value(v).unwrap();
+        let got: Line = Line::from_value(&v).unwrap();
         assert_eq!(expect, got);
     }
 }

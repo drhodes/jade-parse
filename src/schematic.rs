@@ -64,11 +64,15 @@ mod tests {
              ["/gates/and3", [56,32,4]],
              ["/gates/and4", [-16,-24,4]],
              ["/gates/and4", [-96,-88,4]],
-             ["/gates/and2", [-144,-104,4]]]);
-        let got = Schematic::from_value(&val);
-        match got {
+             ["/gates/and2", [-144,-104,4]]]
+        );
+        match Schematic::from_value(&val) {
             Err(e) => panic!("{:?}", e),
-            _ => {}
+            Ok(scm) => {
+                // are all the parts there?
+                const NUM_PARTS: usize = 33;
+                assert_eq!(scm.parts.len(), NUM_PARTS);
+            }
         }
     }
 

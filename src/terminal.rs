@@ -17,8 +17,14 @@ impl Terminal {
         };
 
         let sig = match val_iter.next() {
-            Some(val) => Sig::from_value(val.clone())?,
-            None => bail!("found a corrupted terminal item in schematic")?,
+            Some(val @ Value::String(_)) => Sig::from_value(val.clone())?,
+            Some(Value::Object(obj)) => match obj.get("name") {
+                Some(sig_val) => Sig::from_value(sig_val.clone())?,
+                _ => {
+                    return bailfmt!("could't find signal name in this terminal: {:?}", val);
+                }
+            },
+            x => bailfmt!("found a corrupted terminal item in schematic: {:?}", x)?,
         };
         Ok(Terminal { coord3, sig })
     }
@@ -52,5 +58,12 @@ mod tests {
         let val = json!(["terminal", [0, 0, 0], ""]);
         let got = Terminal::from_value(&val);
         assert!(got.is_err());
+    }
+
+    #[test]
+    fn terminal4() {
+        let val = json!(["terminal", [32,0,4],{"name":"Ci"}]);
+        let got = Terminal::from_value(&val);
+        assert!(got.is_ok());
     }
 }

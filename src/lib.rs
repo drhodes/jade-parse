@@ -22,6 +22,8 @@ pub mod wire;
 
 // icon
 pub mod circle;
+pub mod icon;
+pub mod icon_part;
 pub mod port;
 pub mod terminal;
 pub mod text;

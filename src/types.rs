@@ -30,9 +30,10 @@ pub struct Schematic {
     pub parts: Vec<Part>,
 }
 
-pub struct Icon;
-
-pub struct Test;
+#[derive(Debug)]
+pub struct Icon {
+    pub parts: Vec<IconPart>,
+}
 
 #[derive(Debug, PartialEq)]
 pub enum Part {
@@ -41,9 +42,31 @@ pub enum Part {
     Jumper(Jumper),
     Terminal(Terminal),
     Text(Text),
-    // match submodule last.
     SubModule(SubModule),
 }
+
+#[derive(Debug, PartialEq)]
+pub enum IconPart {
+    Line(Line),
+    Terminal(Terminal),
+    Text(Text),
+    Circle(Circle),
+    // Property,
+    // Arc,
+}
+
+pub struct Test;
+
+// #[derive(Debug, PartialEq)]
+// pub enum Part {
+//     Port(Port),
+//     Wire(Wire),
+//     Jumper(Jumper),
+//     Terminal(Terminal),
+//     Text(Text),
+//     // match submodule last.
+//     SubModule(SubModule),
+// }
 
 // -----------------------------------------------------------------------------
 #[derive(Debug, PartialEq)]
