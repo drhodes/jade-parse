@@ -55,8 +55,6 @@ pub enum IconPart {
     // Arc,
 }
 
-pub struct Test;
-
 // #[derive(Debug, PartialEq)]
 // pub enum Part {
 //     Port(Port),
@@ -187,4 +185,77 @@ pub struct Port {
 pub struct Terminal {
     pub coord3: Coord3,
     pub sig: Sig,
+}
+
+//-----------------------------------------------------------------------------
+//
+// JADE TESTS
+//
+
+pub struct Power {
+    pub vdd: f64,
+}
+
+pub struct Thresholds {
+    pub vol: f64,
+    pub vil: f64,
+    pub vih: f64,
+    pub voh: f64,
+}
+
+pub struct Inputs(Vec<Sig>);
+pub struct Outputs(Vec<Sig>);
+
+pub enum Mode {
+    Device,
+    Gate,
+}
+
+pub enum Duration {
+    NanoSecond(f64),
+    MilliSecond(f64),
+    //PicoSecond(f64),
+}
+
+pub enum Action {
+    Assert(String),
+    Deassert(String),
+    Tran(Duration),
+    SetSignal(Sig, f64),
+}
+
+pub struct CycleLine(Vec<Action>);
+
+pub enum BinVal {
+    L,
+    H,
+    Z,
+}
+pub struct TestLine {
+    pub bin_vals: Vec<BinVal>,
+    pub comment: Option<String>,
+}
+
+pub struct PlotDef {
+    sig: Sig,
+}
+
+pub enum PlotStyle {
+    BinStyle(Sig),
+    HexStyle(Sig),
+    DecStyle(Sig),
+    SimplePlot(Sig),
+    PlotDefStyle(String, Sig),
+}
+
+pub struct Test {
+    pub power: Option<Power>,
+    pub thresholds: Option<Thresholds>,
+    pub inputs: Option<Inputs>,
+    pub outputs: Option<Outputs>,
+    pub mode: Option<Mode>,
+    pub cycle_line: Option<CycleLine>,
+    pub test_lines: Vec<TestLine>,
+    pub plot_def: Vec<PlotDef>,
+    pub plot_styles: Vec<PlotStyle>,
 }
