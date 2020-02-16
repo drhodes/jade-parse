@@ -2,24 +2,36 @@ use crate::common::*;
 use crate::sig;
 use crate::types::*;
 use regex::Regex;
+use std::collections::HashMap;
 use std::str::FromStr;
 
-const ident: &str = "[a-zA-Z_][a-zA-Z_0-9]*";
-const space: &str = r#"[\s]*"#;
-const number: &str = r#"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?"#;
+const IDENT: &str = "[a-zA-Z_][a-zA-Z_0-9]*";
+const SPACE: &str = r#"[\s]*"#;
+const NUMBER: &str = r#"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?"#;
+
+// should probably use a grammar for this but the parsing story for
+// rust at the moment is nascent but auspicious.
+
+fn is_ident(s: &str) -> bool {
+    let pat_str = format!("^{}$", IDENT);
+    match regex::Regex::new(&pat_str).unwrap().find(s) {
+        Some(_) => true,
+        _ => false,
+    }
+}
 
 impl ModTest {
-    pub fn default(test_str: &str) -> ModTest {
-        ModTest { power: vec![],
-                  thresholds: None,
-                  inputs: None,
-                  outputs: None,
-                  mode: None,
-                  cycle_line: None,
-                  test_lines: vec![],
-                  plot_def: vec![],
-                  plot_styles: vec![] }
-    }
+    // pub fn default(test_str: &str) -> ModTest {
+    //     ModTest { power: vec![],
+    //               thresholds: None,
+    //               groups: HashMap::new(),
+    //               outputs: None,
+    //               mode: None,
+    //               cycle_line: None,
+    //               test_lines: vec![],
+    //               plot_def: vec![],
+    //               plot_styles: vec![] }
+    // }
 
     fn parse_power(s: &str) -> E<Vec<Power>> {
         if !s.starts_with(".power") {
@@ -27,7 +39,7 @@ impl ModTest {
         }
         // pattern (<ident> <space>* <equals> <space>* <num>)+
 
-        let pat_str = format!("({}){}{}{}({})", ident, space, "=", space, number);
+        let pat_str = format!("({}){}{}{}({})", IDENT, SPACE, "=", SPACE, NUMBER);
         let pat = regex::Regex::new(&pat_str).unwrap();
         let caps = pat.captures_iter(s);
 
@@ -51,7 +63,7 @@ impl ModTest {
         }
 
         let f = |vxx: &str| {
-            let pat_str = format!("{}{}={}({})", vxx, space, space, number);
+            let pat_str = format!("{}{}={}({})", vxx, SPACE, SPACE, NUMBER);
             let pat = regex::Regex::new(&pat_str).unwrap();
             let caps = match pat.captures(s) {
                 Some(caps) => caps,
@@ -74,42 +86,32 @@ impl ModTest {
         Ok(Thresholds { voh, vol, vih, vil })
     }
 
-    fn parse_inputs(line: &str) -> E<Inputs> {
-        // Jade does not allow spaces these signal names.
-        //.group inputs BFN[3:0] A[31:0] B[31:0]
-        let directive = ".group inputs";
-        if !line.starts_with(directive) {
-            bailfmt!("not a {:?} directive", directive)?;
-        }
-
-        let mut inputs = vec![];
-        let line: &str = &line[directive.len()..].trim();
-        for one_input in line.split_whitespace() {
-            match sig::parse_sig(one_input) {
-                Some(sig) => inputs.push(sig),
-                None => return bailfmt!("Found a bad signal: {}: ", one_input),
-            }
-        }
-        return Ok(Inputs(inputs));
-    }
-
-    fn parse_outputs(line: &str) -> E<Outputs> {
+    fn parse_one_group(line: &str) -> E<(String, Vec<Sig>)> {
         // Jade does not allow spaces these signal names.
         //.group outputs BFN[3:0] A[31:0] B[31:0]
-        let directive = ".group outputs";
+        let directive = ".group";
         if !line.starts_with(directive) {
             bailfmt!("not a {:?} directive", directive)?;
         }
 
-        let mut outputs = vec![];
         let line: &str = &line[directive.len()..].trim();
-        for one_output in line.split_whitespace() {
-            match sig::parse_sig(one_output) {
-                Some(sig) => outputs.push(sig),
-                None => return bailfmt!("Found a bad signal: {}: ", one_output),
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        // the first part should a identifier.
+        let group_name = {
+            if !is_ident(parts[0]) {
+                return bailfmt!(".group requires an a1pha_9umeric name first, got: {}: ", parts[0]);
+            }
+            parts[0]
+        };
+
+        let mut sigs = vec![];
+        for part in parts[1..].iter() {
+            match sig::parse_sig(part) {
+                Some(sig) => sigs.push(sig),
+                None => return bailfmt!(".group contains a bad signal name: {}", part),
             }
         }
-        return Ok(Outputs(outputs));
+        Ok((group_name.to_string(), sigs))
     }
 
     fn parse_mode(line: &str) -> E<Mode> {
@@ -126,6 +128,8 @@ impl ModTest {
     }
 
     fn parse_cycle_line(s: &str) -> Option<CycleLine> {
+        // .cycle assert inputs tran 99n sample outputs tran 1n
+
         todo!();
     }
 
@@ -180,22 +184,12 @@ mod tests {
     }
 
     #[test]
-    fn parse_inputs1() {
-        let got = ModTest::parse_inputs(".group inputs BFN[3:0] A[31:0] B[31:0]");
-
-        let expect = Ok(Inputs(vec![sig::parse_sig("BFN[3:0]").unwrap(),
-                                    sig::parse_sig("A[31:0]").unwrap(),
-                                    sig::parse_sig("B[31:0]").unwrap()]));
-        assert_eq!(got, expect);
-    }
-
-    #[test]
-    fn parse_outputs1() {
-        let got = ModTest::parse_inputs(".group inputs BFN[3:0] A[31:0] B[31:0]");
-
-        let expect = Ok(Inputs(vec![sig::parse_sig("BFN[3:0]").unwrap(),
-                                    sig::parse_sig("A[31:0]").unwrap(),
-                                    sig::parse_sig("B[31:0]").unwrap()]));
+    fn parse_one_group1() {
+        let got = ModTest::parse_one_group(".group inputs BFN[3:0] A[31:0] B[31:0]");
+        let expect = Ok(("inputs".to_string(),
+                         vec![sig::parse_sig("BFN[3:0]").unwrap(),
+                              sig::parse_sig("A[31:0]").unwrap(),
+                              sig::parse_sig("B[31:0]").unwrap()]));
         assert_eq!(got, expect);
     }
 
