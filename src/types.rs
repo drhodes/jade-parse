@@ -19,7 +19,7 @@ pub struct Module {
     pub name: String,
     pub properties: u8,
     pub schematic: Schematic,
-    pub icon: u8,
+    pub icon: Option<Icon>,
     pub test: u8,
 }
 
@@ -187,15 +187,17 @@ pub struct Terminal {
     pub sig: Sig,
 }
 
-//-----------------------------------------------------------------------------
-//
+// -----------------------------------------------------------------------------
 // JADE TESTS
 //
 
+#[derive(Debug, PartialEq)]
 pub struct Power {
-    pub vdd: f64,
+    pub name: String,
+    pub volts: f64,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct Thresholds {
     pub vol: f64,
     pub vil: f64,
@@ -203,20 +205,26 @@ pub struct Thresholds {
     pub voh: f64,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct Inputs(Vec<Sig>);
+
+#[derive(Debug, PartialEq)]
 pub struct Outputs(Vec<Sig>);
 
+#[derive(Debug, PartialEq)]
 pub enum Mode {
     Device,
     Gate,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum Duration {
     NanoSecond(f64),
     MilliSecond(f64),
     //PicoSecond(f64),
 }
 
+#[derive(Debug, PartialEq)]
 pub enum Action {
     Assert(String),
     Deassert(String),
@@ -224,22 +232,28 @@ pub enum Action {
     SetSignal(Sig, f64),
 }
 
+#[derive(Debug, PartialEq)]
 pub struct CycleLine(Vec<Action>);
 
+#[derive(Debug, PartialEq)]
 pub enum BinVal {
     L,
     H,
     Z,
 }
+
+#[derive(Debug, PartialEq)]
 pub struct TestLine {
     pub bin_vals: Vec<BinVal>,
     pub comment: Option<String>,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct PlotDef {
-    sig: Sig,
+    pub sig: Sig,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum PlotStyle {
     BinStyle(Sig),
     HexStyle(Sig),
@@ -248,8 +262,9 @@ pub enum PlotStyle {
     PlotDefStyle(String, Sig),
 }
 
-pub struct Test {
-    pub power: Option<Power>,
+#[derive(Debug, PartialEq)]
+pub struct ModTest {
+    pub power: Vec<Power>,
     pub thresholds: Option<Thresholds>,
     pub inputs: Option<Inputs>,
     pub outputs: Option<Outputs>,

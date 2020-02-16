@@ -7,6 +7,7 @@ pub mod bail;
 pub mod common;
 
 //pub mod project;
+pub mod mod_test;
 
 // schematic
 pub mod dir;
