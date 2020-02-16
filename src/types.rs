@@ -206,10 +206,10 @@ pub struct Thresholds {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Inputs(Vec<Sig>);
+pub struct Inputs(pub Vec<Sig>);
 
 #[derive(Debug, PartialEq)]
-pub struct Outputs(Vec<Sig>);
+pub struct Outputs(pub Vec<Sig>);
 
 #[derive(Debug, PartialEq)]
 pub enum Mode {

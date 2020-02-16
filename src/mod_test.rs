@@ -1,4 +1,5 @@
 use crate::common::*;
+use crate::sig;
 use crate::types::*;
 use regex::Regex;
 use std::str::FromStr;
@@ -73,12 +74,44 @@ impl ModTest {
         Ok(Thresholds { voh, vol, vih, vil })
     }
 
-    fn parse_inputs(s: &str) -> Option<Inputs> {
-        todo!();
+    fn parse_inputs(line: &str) -> E<Inputs> {
+        // Jade does not allow spaces these signal names.
+        //.group inputs BFN[3:0] A[31:0] B[31:0]
+        let directive = ".group inputs";
+        if !line.starts_with(directive) {
+            bailfmt!("not a {:?} directive", directive)?;
+        }
+
+        let mut inputs = vec![];
+        let line: &str = &line[directive.len()..].trim();
+        for one_input in line.split_whitespace() {
+            match sig::parse_sig(one_input) {
+                Some(sig) => inputs.push(sig),
+                None => return bailfmt!("Found a bad signal: {}: ", one_input),
+            }
+        }
+        return Ok(Inputs(inputs));
     }
-    fn parse_outputs(s: &str) -> Option<Outputs> {
-        todo!();
+
+    fn parse_outputs(line: &str) -> E<Outputs> {
+        // Jade does not allow spaces these signal names.
+        //.group outputs BFN[3:0] A[31:0] B[31:0]
+        let directive = ".group outputs";
+        if !line.starts_with(directive) {
+            bailfmt!("not a {:?} directive", directive)?;
+        }
+
+        let mut outputs = vec![];
+        let line: &str = &line[directive.len()..].trim();
+        for one_output in line.split_whitespace() {
+            match sig::parse_sig(one_output) {
+                Some(sig) => outputs.push(sig),
+                None => return bailfmt!("Found a bad signal: {}: ", one_output),
+            }
+        }
+        return Ok(Outputs(outputs));
     }
+
     fn parse_mode(s: &str) -> Option<Mode> {
         todo!();
     }
@@ -106,6 +139,26 @@ impl ModTest {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn parse_inputs1() {
+        let got = ModTest::parse_inputs(".group inputs BFN[3:0] A[31:0] B[31:0]");
+
+        let expect = Ok(Inputs(vec![sig::parse_sig("BFN[3:0]").unwrap(),
+                                    sig::parse_sig("A[31:0]").unwrap(),
+                                    sig::parse_sig("B[31:0]").unwrap()]));
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn parse_outputs1() {
+        let got = ModTest::parse_inputs(".group inputs BFN[3:0] A[31:0] B[31:0]");
+
+        let expect = Ok(Inputs(vec![sig::parse_sig("BFN[3:0]").unwrap(),
+                                    sig::parse_sig("A[31:0]").unwrap(),
+                                    sig::parse_sig("B[31:0]").unwrap()]));
+        assert_eq!(got, expect);
+    }
 
     #[test]
     fn parse_threshold1() {
