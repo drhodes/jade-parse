@@ -41,6 +41,7 @@ macro_rules! bailif {
     };
 }
 
+#[derive(PartialEq)]
 pub struct Bail {
     pub line: u32, // line number
     pub col: u32,  //
