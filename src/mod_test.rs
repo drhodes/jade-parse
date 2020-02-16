@@ -3,6 +3,10 @@ use crate::types::*;
 use regex::Regex;
 use std::str::FromStr;
 
+const ident: &str = "[a-zA-Z_][a-zA-Z_0-9]*";
+const space: &str = r#"[\s]*"#;
+const number: &str = r#"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?"#;
+
 impl ModTest {
     pub fn default(test_str: &str) -> ModTest {
         ModTest { power: vec![],
@@ -17,38 +21,58 @@ impl ModTest {
     }
 
     fn parse_power(s: &str) -> E<Vec<Power>> {
-        if s.starts_with(".power") {
-            // pattern (<ident> <space>* <equals> <space>* <num> <space>*)+
-            let ident = "[a-zA-Z_][a-zA-Z_0-9]*";
-            let space = r#"[\s]*"#;
-            let number = r#"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?"#;
-
-            let pat_str = format!("({}){}{}{}({})", ident, space, "=", space, number);
-            let pat = regex::Regex::new(&pat_str).unwrap();
-            println!("{}", pat_str);
-            let caps = pat.captures_iter(s);
-
-            let mut powers = vec![];
-
-            for cap in caps {
-                match (cap.get(1), cap.get(2)) {
-                    (Some(name), Some(volts)) => {
-                        powers.push(Power { name: name.as_str().to_string(),
-                                            volts: volts.as_str().parse::<f64>().unwrap() });
-                    }
-                    _ => {}
-                }
-            }
-            // let sym = caps.get(1)?.as_str().to_string();
-            // let idx = caps.get(2)?.as_str().parse::<i32>().unwrap();
-            Ok(powers)
-        } else {
-            bail!("not power line")
+        if !s.starts_with(".power") {
+            return bail!("not power line: todo improve this message");
         }
+        // pattern (<ident> <space>* <equals> <space>* <num>)+
+
+        let pat_str = format!("({}){}{}{}({})", ident, space, "=", space, number);
+        let pat = regex::Regex::new(&pat_str).unwrap();
+        let caps = pat.captures_iter(s);
+
+        let mut powers = vec![];
+
+        for cap in caps {
+            match (cap.get(1), cap.get(2)) {
+                (Some(name), Some(volts)) => {
+                    powers.push(Power { name: name.as_str().to_string(),
+                                        volts: volts.as_str().parse::<f64>().unwrap() });
+                }
+                _ => {}
+            }
+        }
+        Ok(powers)
     }
-    fn parse_thresholds(s: &str) -> Option<Thresholds> {
-        todo!();
+
+    fn parse_thresholds(s: &str) -> E<Thresholds> {
+        if !s.starts_with(".thresholds") {
+            return bail!("not threshhold line: todo improve this message");
+        }
+
+        let f = |vxx: &str| {
+            let pat_str = format!("{}{}={}({})", vxx, space, space, number);
+            let pat = regex::Regex::new(&pat_str).unwrap();
+            let caps = match pat.captures(s) {
+                Some(caps) => caps,
+                _ => return bailfmt!("No {} found in threshold line", vxx),
+            };
+            match caps.get(1) {
+                Some(volts) => {
+                    println!("{:?}, {:?}", caps, volts);
+                    Ok(volts.as_str().parse::<f64>().unwrap())
+                }
+                None => bailfmt!("No {} found in threshold line", vxx),
+            }
+        };
+
+        let voh = f("Voh")?;
+        let vol = f("Vol")?;
+        let vih = f("Vih")?;
+        let vil = f("Vil")?;
+
+        Ok(Thresholds { voh, vol, vih, vil })
     }
+
     fn parse_inputs(s: &str) -> Option<Inputs> {
         todo!();
     }
@@ -83,15 +107,23 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    //#[test]
-    // fn parse_power1() {
-    //     let got = ModTest::parse_power(".power Vdd=1");
-    //     let expect = vec![Power { name: "Vdd".to_string(), volts: 1.0f64 }];
-    //     println!("got: {:?}", got);
-    //     println!("exp: {:?}", expect);
+    #[test]
+    fn parse_threshold1() {
+        let got = ModTest::parse_thresholds(".thresholds Vol=0 Vil=0.1 Vih=0.9 Voh=1");
+        let expect = Ok(Thresholds { vol: 0.0, vil: 0.1, vih: 0.9, voh: 1.0 });
+        assert_eq!(got, expect);
+    }
 
-    //     assert_eq!(got, Ok(expect));
-    // }
+    #[test]
+    fn parse_threshold2() {
+        // missing Voh
+        match ModTest::parse_thresholds(".thresholds Vol=0.0 Vil=0.1 Vih=0.9") {
+            Err(b) => {
+                assert_eq!(b.msg, "No Voh found in threshold line");
+            }
+            _ => panic!("Expecting error got good value"),
+        }
+    }
 
     #[test]
     fn parse_power2() {
