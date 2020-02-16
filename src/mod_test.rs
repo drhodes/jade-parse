@@ -112,21 +112,35 @@ impl ModTest {
         return Ok(Outputs(outputs));
     }
 
-    fn parse_mode(s: &str) -> Option<Mode> {
-        todo!();
+    fn parse_mode(line: &str) -> E<Mode> {
+        if !line.starts_with(".mode") {
+            bail!("not a mode directive")?;
+        }
+        let line: &str = &line[".mode".len()..].trim();
+
+        match line {
+            "gate" => Ok(Mode::Gate),
+            "device" => Ok(Mode::Device),
+            _ => bailfmt!("Unknown mode: {}", line),
+        }
     }
+
     fn parse_cycle_line(s: &str) -> Option<CycleLine> {
         todo!();
     }
+
     fn parse_test_lines(s: &str) -> Vec<TestLine> {
         todo!();
     }
+
     fn parse_plot_def(s: &str) -> Vec<PlotDef> {
         todo!();
     }
+
     fn parse_plot_styles(s: &str) -> Vec<PlotStyle> {
         todo!();
     }
+
     fn parse_plot_style(s: &str) -> Option<PlotStyle> {
         todo!();
     }
@@ -139,6 +153,31 @@ impl ModTest {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn parse_mode1() {
+        let got = ModTest::parse_mode(".mode    gate");
+        let expect = Ok(Mode::Gate);
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn parse_mode2() {
+        let got = ModTest::parse_mode(".mode device");
+        let expect = Ok(Mode::Device);
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn parse_mode3() {
+        match ModTest::parse_mode(".mode dvice") {
+            Err(b) => {
+                let msg = format!("Unknown mode: {}", "dvice");
+                assert_eq!(b.msg, msg);
+            }
+            _ => panic!("this test should fail"),
+        }
+    }
 
     #[test]
     fn parse_inputs1() {
