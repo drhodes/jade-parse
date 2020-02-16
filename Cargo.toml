@@ -1,5 +1,5 @@
 [package]
-name = "jade-netlist"
+name = "jade-parse"
 version = "0.1.0"
 authors = ["Derek Rhodes <physci@gmail.com>"]
 edition = "2018"

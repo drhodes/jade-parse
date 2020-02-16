@@ -2,6 +2,7 @@ pub use crate::bail::*;
 
 use serde::{Deserialize, Serialize};
 use serde_repr::*;
+use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
 use std::fmt::Debug;
@@ -206,10 +207,9 @@ pub struct Thresholds {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Inputs(pub Vec<Sig>);
-
-#[derive(Debug, PartialEq)]
-pub struct Outputs(pub Vec<Sig>);
+pub struct Group {
+    pub sig_set: HashMap<String, Vec<Sig>>,
+}
 
 #[derive(Debug, PartialEq)]
 pub enum Mode {
@@ -266,8 +266,9 @@ pub enum PlotStyle {
 pub struct ModTest {
     pub power: Vec<Power>,
     pub thresholds: Option<Thresholds>,
-    pub inputs: Option<Inputs>,
-    pub outputs: Option<Outputs>,
+    pub groups: Vec<Vec<Sig>>,
+    // pub inputs: Option<Inputs>,
+    // pub outputs: Option<Outputs>,
     pub mode: Option<Mode>,
     pub cycle_line: Option<CycleLine>,
     pub test_lines: Vec<TestLine>,
