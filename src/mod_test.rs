@@ -70,10 +70,7 @@ impl ModTest {
                 _ => return bailfmt!("No {} found in threshold line", vxx),
             };
             match caps.get(1) {
-                Some(volts) => {
-                    println!("{:?}, {:?}", caps, volts);
-                    Ok(volts.as_str().parse::<f64>().unwrap())
-                }
+                Some(volts) => Ok(volts.as_str().parse::<f64>().unwrap()),
                 None => bailfmt!("No {} found in threshold line", vxx),
             }
         };
@@ -99,7 +96,8 @@ impl ModTest {
         // the first part should a identifier.
         let group_name = {
             if !is_ident(parts[0]) {
-                return bailfmt!(".group requires an a1pha_9umeric name first, got: {}: ", parts[0]);
+                let msg = ".group requires an a1pha_9umeric name first, got";
+                return bailfmt!("{}: {:?}", msg, parts[0]);
             }
             parts[0]
         };
@@ -129,25 +127,73 @@ impl ModTest {
 
     fn parse_cycle_line(s: &str) -> Option<CycleLine> {
         // .cycle assert inputs tran 99n sample outputs tran 1n
-
         todo!();
     }
 
-    fn parse_test_lines(s: &str) -> Vec<TestLine> {
-        todo!();
+    fn parse_test_line(mut s: &str) -> E<TestLine> {
+        let parse_chars = |cs: &str| -> E<Vec<BinVal>> {
+            let mut binvals = vec![];
+            for c in cs.chars() {
+                if c.is_whitespace() {
+                    continue;
+                }
+                let msg = "Bad value in test line, expecting L, H, X, Z or '-', got: ";
+                binvals.push(match c {
+                                 'L' => L, // binary low
+                                 'H' => H, // binary high
+                                 '0' => L, // binary low
+                                 '1' => H, // binary high
+                                 'X' => X, // an unknown or illegal logic value
+                                 'Z' => Z, // not driven, aka "high impedence"
+                                 '-' => DontCare,
+                                 _ => {
+                                     return bailfmt!("{}{:?}", msg, c);
+                                 }
+                             });
+            }
+            return Ok(binvals);
+        };
+        if let Some(idx) = s.find("//") {
+            // does the line contain a "//" comment?
+            let data = &s[0..idx];
+            let comment = &s[idx + 2..];
+            let bin_vals = parse_chars(data.trim())?;
+            return Ok(TestLine { bin_vals, comment: Some(comment.to_string()) });
+        } else {
+            // no comment found.
+            let bin_vals = parse_chars(s)?;
+            return Ok(TestLine { bin_vals, comment: None });
+        }
     }
 
-    fn parse_plot_def(s: &str) -> Vec<PlotDef> {
-        todo!();
+    fn plot_def(line: &str) -> E<PlotDef> {
+        // .plotdef reg R0 R1 ... R31
+
+        if !line.starts_with(".plotdef") {
+            bail!("Not a plot definition directive")
+        } else {
+            let line: &str = line[7..].trim();
+            let mut tags = vec![];
+            let mut name = String::new();
+
+            for tag in line.split_whitespace() {
+                // the first word is the plotdef name.
+                if name.is_empty() {
+                    if is_ident(&name) {
+                        name = tag.to_string();
+                    } else {
+                        let msg = ".plotdef directive identifier must be an alphanumeric, got";
+                        return bailfmt!("{}: {}", msg, name);
+                    }
+                } else {
+                    tags.push(tag.to_string());
+                }
+            }
+            Ok(PlotDef { name, tags })
+        }
     }
 
-    fn parse_plot_styles(s: &str) -> Vec<PlotStyle> {
-        todo!();
-    }
-
-    fn parse_plot_style(s: &str) -> Option<PlotStyle> {
-        todo!();
-    }
+    //fn parse_plot_line(s: &str) -> E<PlotDirective> {}
 }
 
 // -----------------------------------------------------------------------------
@@ -157,6 +203,23 @@ impl ModTest {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn parse_testline1() {
+        let got = ModTest::parse_test_line("HHH LLL 110 --- // last three don't care");
+        let bin_vals = vec![H, H, H, L, L, L, H, H, L, DontCare, DontCare, DontCare];
+        let comment = Some(" last three don't care".to_string());
+        let expect = Ok(TestLine { bin_vals, comment });
+        assert_eq!(got, expect);
+    }
+    #[test]
+    fn parse_testline2() {
+        let got = ModTest::parse_test_line("HHH LLL 110 ---");
+        let bin_vals = vec![H, H, H, L, L, L, H, H, L, DontCare, DontCare, DontCare];
+        let comment = None;
+        let expect = Ok(TestLine { bin_vals, comment });
+        assert_eq!(got, expect);
+    }
 
     #[test]
     fn parse_mode1() {

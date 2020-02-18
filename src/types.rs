@@ -237,10 +237,13 @@ pub struct CycleLine(Vec<Action>);
 
 #[derive(Debug, PartialEq)]
 pub enum BinVal {
-    L,
-    H,
-    Z,
+    L,        // binary low
+    H,        // binary high
+    X,        // an unknown or illegal logic value
+    Z,        // not driven, aka "high impedence"
+    DontCare, // Don't Care
 }
+pub use BinVal::*;
 
 #[derive(Debug, PartialEq)]
 pub struct TestLine {
@@ -249,12 +252,7 @@ pub struct TestLine {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct PlotDef {
-    pub sig: Sig,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum PlotStyle {
+pub enum PlotDirective {
     BinStyle(Sig),
     HexStyle(Sig),
     DecStyle(Sig),
@@ -263,15 +261,18 @@ pub enum PlotStyle {
 }
 
 #[derive(Debug, PartialEq)]
+pub struct PlotDef {
+    pub name: String,
+    pub tags: Vec<String>,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct ModTest {
     pub power: Vec<Power>,
     pub thresholds: Option<Thresholds>,
-    pub groups: Vec<Vec<Sig>>,
-    // pub inputs: Option<Inputs>,
-    // pub outputs: Option<Outputs>,
+    pub groups: Vec<Group>,
     pub mode: Option<Mode>,
     pub cycle_line: Option<CycleLine>,
     pub test_lines: Vec<TestLine>,
-    pub plot_def: Vec<PlotDef>,
-    pub plot_styles: Vec<PlotStyle>,
+    pub plot_dir: Vec<PlotDirective>,
 }
