@@ -9,9 +9,6 @@ const IDENT: &str = "[a-zA-Z_][a-zA-Z_0-9]*";
 const SPACE: &str = r#"[\s]*"#;
 const NUMBER: &str = r#"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?"#;
 
-// should probably use a grammar for this but the parsing story for
-// rust at the moment is nascent but auspicious.
-
 fn is_ident(s: &str) -> bool {
     let pat_str = format!("^{}$", IDENT);
     match regex::Regex::new(&pat_str).unwrap().find(s) {
@@ -137,7 +134,7 @@ impl ModTest {
                 if c.is_whitespace() {
                     continue;
                 }
-                let msg = "Bad value in test line, expecting L, H, X, Z or '-', got: ";
+                let msg = "Bad value in test line, expecting L, H, X, Z or -, got: ";
                 binvals.push(match c {
                                  'L' => L, // binary low
                                  'H' => H, // binary high
@@ -166,24 +163,24 @@ impl ModTest {
         }
     }
 
-    fn plot_def(line: &str) -> E<PlotDef> {
+    fn parse_plot_def(line: &str) -> E<PlotDef> {
         // .plotdef reg R0 R1 ... R31
 
-        if !line.starts_with(".plotdef") {
+        if !line.starts_with(".plotdef ") {
             bail!("Not a plot definition directive")
         } else {
-            let line: &str = line[7..].trim();
+            let line: &str = line[8..].trim();
             let mut tags = vec![];
             let mut name = String::new();
 
             for tag in line.split_whitespace() {
                 // the first word is the plotdef name.
                 if name.is_empty() {
-                    if is_ident(&name) {
+                    if is_ident(&tag) {
                         name = tag.to_string();
                     } else {
                         let msg = ".plotdef directive identifier must be an alphanumeric, got";
-                        return bailfmt!("{}: {}", msg, name);
+                        return bailfmt!("{}: '{}'", msg, tag);
                     }
                 } else {
                     tags.push(tag.to_string());
@@ -193,7 +190,42 @@ impl ModTest {
         }
     }
 
-    //fn parse_plot_line(s: &str) -> E<PlotDirective> {}
+    fn parse_plot_line(line: &str) -> E<PlotDirective> {
+        if !line.starts_with(".plot ") {
+            bail!("Not a plot directive")
+        } else {
+            let line: &str = line[5..].trim();
+            // need to match something like this:  .plot X(Y[31:0])
+            //                           or just:  .plot Y
+
+            let pat_str = r#"([a-zA-Z_][a-zA-Z0-9_]*)(\(([^\)]+)\))?"#;
+            let pat = regex::Regex::new(&pat_str).unwrap();
+            let caps = match pat.captures(line) {
+                Some(caps) => caps,
+                _ => return bailfmt!("Bad signal found in .plot directive: {}", line),
+            };
+            match (caps.get(1), caps.get(3)) {
+                (Some(ident), Some(sig_string)) => {
+                    // let sig_string = sig_string[
+                    let sig = Sig::from_str(sig_string.as_str());
+                    let sig = bailif!(sig, "Bad signal name in .plot directive")?;
+
+                    let ident = ident.as_str();
+                    Ok(match ident {
+                        "B" => PlotDirective::BinStyle(sig),
+                        "X" => PlotDirective::HexStyle(sig),
+                        "D" => PlotDirective::DecStyle(sig),
+                        _ => PlotDirective::PlotDefStyle(ident.to_string(), sig),
+                    })
+                }
+                (Some(sig_string), None) => {
+                    let sig = Sig::from_str(sig_string.as_str())?;
+                    Ok(PlotDirective::SimplePlot(sig))
+                }
+                (x, y) => bailfmt!("unhandled case in parse_plot_line ({:?}. {:?}", x, y),
+            }
+        }
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -202,7 +234,30 @@ impl ModTest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
+
+    #[test]
+    fn parse_plot_line1() {
+        let got = ModTest::parse_plot_line(".plot X(Y[31:0])");
+        let sig = sig::parse_sig("Y[31:0]").unwrap();
+        let expect = PlotDirective::HexStyle(sig);
+        assert_eq!(got, Ok(expect));
+    }
+
+    #[test]
+    fn parse_plot_line2() {
+        let got = ModTest::parse_plot_line(".plot clk");
+        let sig = sig::parse_sig("clk").unwrap();
+        let expect = PlotDirective::SimplePlot(sig);
+        assert_eq!(got, Ok(expect));
+    }
+
+    #[test]
+    fn parse_plot_def() {
+        let got = ModTest::parse_plot_def(".plotdef op ADD SUB MUL");
+        let expect = PlotDef { name: "op".to_string(),
+                               tags: vec!["ADD".to_string(), "SUB".to_string(), "MUL".to_string()] };
+        assert_eq!(got, Ok(expect));
+    }
 
     #[test]
     fn parse_testline1() {
@@ -212,6 +267,7 @@ mod tests {
         let expect = Ok(TestLine { bin_vals, comment });
         assert_eq!(got, expect);
     }
+
     #[test]
     fn parse_testline2() {
         let got = ModTest::parse_test_line("HHH LLL 110 ---");
