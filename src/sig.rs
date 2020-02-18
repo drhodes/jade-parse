@@ -114,13 +114,17 @@ pub fn parse_sig(input: &str) -> Option<Sig> {
 impl Sig {
     pub fn from_value(val: Value) -> E<Sig> {
         if let Value::String(sig_string) = val {
-            if let Some(sig) = parse_sig(sig_string.as_str()) {
-                Ok(sig)
-            } else {
-                bailfmt!("error parsing sig string: {:?}", sig_string)
-            }
+            Sig::from_str(&sig_string)
         } else {
             bailfmt!("Sig::from_value expected string, got: {:?}", val)
+        }
+    }
+
+    pub fn from_str(val: &str) -> E<Sig> {
+        if let Some(sig) = parse_sig(val) {
+            Ok(sig) //
+        } else {
+            bailfmt!("error parsing sig string: {:?}", val)
         }
     }
 }
