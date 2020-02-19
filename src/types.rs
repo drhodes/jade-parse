@@ -208,7 +208,7 @@ pub struct Thresholds {
 
 #[derive(Debug, PartialEq)]
 pub struct Groups {
-    pub sig_set: HashMap<String, Vec<Sig>>,
+    pub sig_set: HashMap<GroupName, Vec<Sig>>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -219,21 +219,36 @@ pub enum Mode {
 
 #[derive(Debug, PartialEq)]
 pub enum Duration {
+    MicroSecond(f64),
     NanoSecond(f64),
-    MilliSecond(f64),
-    //PicoSecond(f64),
+    PicoSecond(f64),
+    FemptoSecond(f64),
+    AttoSecond(f64),
 }
+
+// from the jade tutorial:
+// Tests are sequences of lines supplying test values; .cycle specifies
+// the sequence of actions that will be performed for each test.  Available
+// actions are
+//    assert group -- set values for signals in group with H,L test values
+//    deassert group -- stop setting values for signals in group with H,L test values
+//    sample group -- check values of signals in group with 0,1 test values
+//    tran time -- run simulation for specified time interval
+//    signal=val -- set signal to specified value
+
+type GroupName = String;
 
 #[derive(Debug, PartialEq)]
 pub enum Action {
-    Assert(String),
-    Deassert(String),
+    Assert(GroupName),
+    Deassert(GroupName),
+    Sample(GroupName),
     Tran(Duration),
     SetSignal(Sig, f64),
 }
 
 #[derive(Debug, PartialEq)]
-pub struct CycleLine(Vec<Action>);
+pub struct CycleLine(pub Vec<Action>);
 
 #[derive(Debug, PartialEq)]
 pub enum BinVal {

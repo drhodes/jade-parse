@@ -8,7 +8,9 @@ use std::str::FromStr;
 
 const IDENT: &str = "[a-zA-Z_][a-zA-Z_0-9]*";
 const SPACE: &str = r#"[\s]*"#;
+const ONE_OR_MORE_SPACE: &str = r#"[\s]+"#;
 const NUMBER: &str = r#"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?"#;
+const DURATION: &str = r#"([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)([unpfaUNF])"#;
 
 fn is_ident(s: &str) -> bool {
     let pat_str = format!("^{}$", IDENT);
@@ -162,9 +164,54 @@ impl ModTest {
         }
     }
 
-    fn parse_cycle_line(s: &str) -> Option<CycleLine> {
+    fn parse_cycle_line(line: &str) -> E<CycleLine> {
         // .cycle assert inputs tran 99n sample outputs tran 1n
-        todo!();
+        if !line.starts_with(".cycle") {
+            bail!("not a cycle directive")
+        } else {
+            let assert_pattern = format!("assert{}({})", ONE_OR_MORE_SPACE, IDENT);
+            let deassert_pattern = format!("deassert{}({})", ONE_OR_MORE_SPACE, IDENT);
+            let sample_pattern = format!("sample{}({})", ONE_OR_MORE_SPACE, IDENT);
+            let tran_pattern = format!("tran{}{}", ONE_OR_MORE_SPACE, DURATION);
+            // TODO SetSignal
+
+            let mut actions: Vec<Action> = vec![];
+
+            for assert in regex::Regex::new(&assert_pattern).unwrap().captures_iter(line) {
+                if let Some(groupname) = assert.get(1) {
+                    actions.push(Action::Assert(groupname.as_str().to_owned()));
+                }
+            }
+            for deassert in regex::Regex::new(&deassert_pattern).unwrap().captures_iter(line) {
+                if let Some(groupname) = deassert.get(1) {
+                    actions.push(Action::Deassert(groupname.as_str().to_owned()));
+                }
+            }
+            for sample in regex::Regex::new(&sample_pattern).unwrap().captures_iter(line) {
+                if let Some(groupname) = sample.get(1) {
+                    actions.push(Action::Sample(groupname.as_str().to_owned()));
+                }
+            }
+            for tran in regex::Regex::new(&tran_pattern).unwrap().captures_iter(line) {
+                match (tran.get(1), tran.get(3)) {
+                    (Some(num), Some(unit)) => {
+                        let n = num.as_str().parse::<f64>().unwrap();
+                        actions.push(Action::Tran(match unit.as_str() {
+                                                      "u" | "U" => Duration::MicroSecond(n),
+                                                      "n" | "N" => Duration::NanoSecond(n),
+                                                      "p" | "P" => Duration::PicoSecond(n),
+                                                      "f" | "F" => Duration::FemptoSecond(n),
+                                                      "a" | "A" => Duration::AttoSecond(n),
+                                                      x => {
+                                                          return bailfmt!("Unknown duration unit in .cycle: {:?}", x);
+                                                      }
+                                                  }));
+                    }
+                    _ => return bailfmt!("Malformed tran in .cycle {:?}", tran),
+                }
+            }
+            Ok(CycleLine(actions))
+        }
     }
 
     fn parse_test_line(mut s: &str) -> E<TestLine> {
@@ -276,6 +323,39 @@ mod tests {
     use super::*;
 
     #[test]
+    fn parse_cycle_line_1() {
+        let line = ".cycle assert inputs";
+        match ModTest::parse_cycle_line(line) {
+            Ok(CycleLine(xs)) => assert_eq!(xs, vec!(Action::Assert("inputs".to_string()))),
+            Err(berr) => panic!(berr),
+        }
+    }
+
+    #[test]
+    fn parse_cycle_line_2() {
+        //let line = ".cycle assert inputs tran 99n sample outputs tran 1n";
+
+        let line = ".cycle tran 99.5n";
+        match ModTest::parse_cycle_line(line) {
+            Ok(CycleLine(xs)) => assert_eq!(xs, vec!(Action::Tran(Duration::NanoSecond(99.5)))),
+            Err(berr) => panic!("{:?}", berr),
+        }
+    }
+
+    #[test]
+    fn parse_cycle_line_3() {
+        let line = ".cycle assert inputs tran 99n sample outputs tran 1n";
+        match ModTest::parse_cycle_line(line) {
+            Ok(CycleLine(xs)) => assert_eq!(xs,
+                                            vec!(Action::Assert("inputs".to_string()),
+                                                 Action::Tran(Duration::NanoSecond(99.5)),
+                                                 Action::Sample("outputs".to_string()),
+                                                 Action::Tran(Duration::NanoSecond(1.0)))),
+            Err(berr) => panic!("{:?}", berr),
+        }
+    }
+
+    #[test]
     fn from_file_1() {
         match ModTest::from_file(Path::new("./test-data/modtests/bool.test")) {
             Ok(x) => {}
@@ -302,8 +382,8 @@ mod tests {
     #[test]
     fn parse_plot_def() {
         let got = ModTest::parse_plot_def(".plotdef op ADD SUB MUL");
-        let expect = PlotDef { name: "op".to_string(),
-                               tags: vec!["ADD".to_string(), "SUB".to_string(), "MUL".to_string()] };
+        let expect =
+            PlotDef { name: "op".to_string(), tags: vec!["ADD".to_string(), "SUB".to_string(), "MUL".to_string()] };
         assert_eq!(got, Ok(expect));
     }
 
@@ -388,8 +468,8 @@ mod tests {
     #[test]
     fn parse_power3() {
         let got = ModTest::parse_power(".power Vdd=1.0 Foo=1.234");
-        let expect = vec![Power { name: "Vdd".to_string(), volts: 1.0f64 },
-                          Power { name: "Foo".to_string(), volts: 1.234f64 }];
+        let expect =
+            vec![Power { name: "Vdd".to_string(), volts: 1.0f64 }, Power { name: "Foo".to_string(), volts: 1.234f64 }];
         assert_eq!(got, Ok(expect));
     }
 }
