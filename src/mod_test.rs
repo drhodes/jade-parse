@@ -3,6 +3,7 @@ use crate::sig;
 use crate::types::*;
 use regex::Regex;
 use std::collections::HashMap;
+use std::path::Path;
 use std::str::FromStr;
 
 const IDENT: &str = "[a-zA-Z_][a-zA-Z_0-9]*";
@@ -18,17 +19,55 @@ fn is_ident(s: &str) -> bool {
 }
 
 impl ModTest {
-    // pub fn default(test_str: &str) -> ModTest {
-    //     ModTest { power: vec![],
-    //               thresholds: None,
-    //               groups: HashMap::new(),
-    //               outputs: None,
-    //               mode: None,
-    //               cycle_line: None,
-    //               test_lines: vec![],
-    //               plot_def: vec![],
-    //               plot_styles: vec![] }
-    // }
+    pub fn from_str(test_str: &str) -> E<ModTest> {
+        let mut power: Vec<Power> = vec![];
+        let mut thresholds = None;
+        let mut groups = Groups::new();
+        let mut mode = None;
+        let mut cycle_line = None;
+        let mut test_lines = vec![];
+        let mut plot_dirs = vec![];
+        let mut plot_defs = vec![];
+
+        for line in test_str.lines() {
+            let line = line.trim();
+
+            if line.is_empty() {
+                continue; // skip whitespace
+            } else if line.starts_with("//") {
+                continue; // TODO keep comments and line numbers 
+            } else if line.starts_with(".power") {
+                let mut xs = Self::parse_power(line)?;
+                power.append(&mut xs);
+            } else if line.starts_with(".group") {
+                let (name, group) = Self::parse_one_group(line)?;
+                groups.insert_signals(name, group);
+            } else if line.starts_with(".thresholds") {
+                thresholds = Some(Self::parse_thresholds(line)?);
+            } else if line.starts_with(".mode") {
+                mode = Some(Self::parse_mode(line)?);
+            } else if line.starts_with(".cycle") {
+                // TODO cycle line parser
+            } else if line.starts_with(".plotdef") {
+                plot_defs.push(Self::parse_plot_def(line)?);
+            } else if line.starts_with(".plot ") {
+                plot_dirs.push(Self::parse_plot_directive(line)?);
+            } else {
+                // this line is either junk or a test vector
+                let tv = Self::parse_test_line(line)?;
+                test_lines.push(tv)
+            }
+        }
+
+        Ok(ModTest { power, thresholds, groups, mode, cycle_line, test_lines, plot_defs, plot_dirs })
+    }
+
+    pub fn from_file(p: &Path) -> E<ModTest> {
+        match std::fs::read_to_string(p) {
+            Ok(s) => Self::from_str(&s),
+            Err(msg) => bailfmt!("Can't open test: {:?}", msg),
+        }
+    }
 
     fn parse_power(s: &str) -> E<Vec<Power>> {
         if !s.starts_with(".power") {
@@ -48,6 +87,7 @@ impl ModTest {
                     powers.push(Power { name: name.as_str().to_string(),
                                         volts: volts.as_str().parse::<f64>().unwrap() });
                 }
+                // TODO this should return a syntax error.
                 _ => {}
             }
         }
@@ -190,7 +230,7 @@ impl ModTest {
         }
     }
 
-    fn parse_plot_line(line: &str) -> E<PlotDirective> {
+    fn parse_plot_directive(line: &str) -> E<PlotDirective> {
         if !line.starts_with(".plot ") {
             bail!("Not a plot directive")
         } else {
@@ -222,7 +262,7 @@ impl ModTest {
                     let sig = Sig::from_str(sig_string.as_str())?;
                     Ok(PlotDirective::SimplePlot(sig))
                 }
-                (x, y) => bailfmt!("unhandled case in parse_plot_line ({:?}. {:?}", x, y),
+                (x, y) => bailfmt!("unhandled case in parse_plot_directive ({:?}. {:?}", x, y),
             }
         }
     }
@@ -236,16 +276,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse_plot_line1() {
-        let got = ModTest::parse_plot_line(".plot X(Y[31:0])");
+    fn from_file_1() {
+        match ModTest::from_file(Path::new("./test-data/modtests/bool.test")) {
+            Ok(x) => {}
+            Err(msg) => panic!("{:?}", msg),
+        }
+    }
+
+    #[test]
+    fn parse_plot_directive1() {
+        let got = ModTest::parse_plot_directive(".plot X(Y[31:0])");
         let sig = sig::parse_sig("Y[31:0]").unwrap();
         let expect = PlotDirective::HexStyle(sig);
         assert_eq!(got, Ok(expect));
     }
 
     #[test]
-    fn parse_plot_line2() {
-        let got = ModTest::parse_plot_line(".plot clk");
+    fn parse_plot_directive2() {
+        let got = ModTest::parse_plot_directive(".plot clk");
         let sig = sig::parse_sig("clk").unwrap();
         let expect = PlotDirective::SimplePlot(sig);
         assert_eq!(got, Ok(expect));
@@ -343,41 +391,5 @@ mod tests {
         let expect = vec![Power { name: "Vdd".to_string(), volts: 1.0f64 },
                           Power { name: "Foo".to_string(), volts: 1.234f64 }];
         assert_eq!(got, Ok(expect));
-    }
-
-    fn bool_test() {
-        let bool_test_str = r#"
-.power Vdd=1
-.thresholds Vol=0 Vil=0.1 Vih=0.9 Voh=1
-
-.group inputs BFN[3:0] A[31:0] B[31:0]
-.group outputs Y[31:0]
-
-.mode gate
-
-.cycle assert inputs tran 99n sample outputs tran 1n
-
-0000 11111111000000001111111100000000 11111111111111110000000000000000 LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL //  1: bfn=0b0000, a=0XFF00FF00, b=0XFFFF0000, y=0X00000000
-0001 11111111000000001111111100000000 11111111111111110000000000000000 LLLLLLLLLLLLLLLLLLLLLLLLHHHHHHHH //  2: bfn=0b0001, a=0XFF00FF00, b=0XFFFF0000, y=0X000000FF
-0010 11111111000000001111111100000000 11111111111111110000000000000000 LLLLLLLLLLLLLLLLHHHHHHHHLLLLLLLL //  3: bfn=0b0010, a=0XFF00FF00, b=0XFFFF0000, y=0X0000FF00
-0011 11111111000000001111111100000000 11111111111111110000000000000000 LLLLLLLLLLLLLLLLHHHHHHHHHHHHHHHH //  4: bfn=0b0011, a=0XFF00FF00, b=0XFFFF0000, y=0X0000FFFF
-0100 11111111000000001111111100000000 11111111111111110000000000000000 LLLLLLLLHHHHHHHHLLLLLLLLLLLLLLLL //  5: bfn=0b0100, a=0XFF00FF00, b=0XFFFF0000, y=0X00FF0000
-0101 11111111000000001111111100000000 11111111111111110000000000000000 LLLLLLLLHHHHHHHHLLLLLLLLHHHHHHHH //  6: bfn=0b0101, a=0XFF00FF00, b=0XFFFF0000, y=0X00FF00FF
-0110 11111111000000001111111100000000 11111111111111110000000000000000 LLLLLLLLHHHHHHHHHHHHHHHHLLLLLLLL //  7: bfn=0b0110, a=0XFF00FF00, b=0XFFFF0000, y=0X00FFFF00
-0111 11111111000000001111111100000000 11111111111111110000000000000000 LLLLLLLLHHHHHHHHHHHHHHHHHHHHHHHH //  8: bfn=0b0111, a=0XFF00FF00, b=0XFFFF0000, y=0X00FFFFFF
-1000 11111111000000001111111100000000 11111111111111110000000000000000 HHHHHHHHLLLLLLLLLLLLLLLLLLLLLLLL //  9: bfn=0b1000, a=0XFF00FF00, b=0XFFFF0000, y=0XFF000000
-1001 11111111000000001111111100000000 11111111111111110000000000000000 HHHHHHHHLLLLLLLLLLLLLLLLHHHHHHHH // 10: bfn=0b1001, a=0XFF00FF00, b=0XFFFF0000, y=0XFF0000FF
-1010 11111111000000001111111100000000 11111111111111110000000000000000 HHHHHHHHLLLLLLLLHHHHHHHHLLLLLLLL // 11: bfn=0b1010, a=0XFF00FF00, b=0XFFFF0000, y=0XFF00FF00
-1011 11111111000000001111111100000000 11111111111111110000000000000000 HHHHHHHHLLLLLLLLHHHHHHHHHHHHHHHH // 12: bfn=0b1011, a=0XFF00FF00, b=0XFFFF0000, y=0XFF00FFFF
-1100 11111111000000001111111100000000 11111111111111110000000000000000 HHHHHHHHHHHHHHHHLLLLLLLLLLLLLLLL // 13: bfn=0b1100, a=0XFF00FF00, b=0XFFFF0000, y=0XFFFF0000
-1101 11111111000000001111111100000000 11111111111111110000000000000000 HHHHHHHHHHHHHHHHLLLLLLLLHHHHHHHH // 14: bfn=0b1101, a=0XFF00FF00, b=0XFFFF0000, y=0XFFFF00FF
-1110 11111111000000001111111100000000 11111111111111110000000000000000 HHHHHHHHHHHHHHHHHHHHHHHHLLLLLLLL // 15: bfn=0b1110, a=0XFF00FF00, b=0XFFFF0000, y=0XFFFFFF00
-1111 11111111000000001111111100000000 11111111111111110000000000000000 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH // 16: bfn=0b1111, a=0XFF00FF00, b=0XFFFF0000, y=0XFFFFFFFF
-      
-.plot X(BFN[3:0])
-.plot X(A[31:0])
-.plot X(B[31:0])
-.plot X(Y[31:0])
-"#;
     }
 }

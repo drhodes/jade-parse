@@ -207,7 +207,7 @@ pub struct Thresholds {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Group {
+pub struct Groups {
     pub sig_set: HashMap<String, Vec<Sig>>,
 }
 
@@ -270,9 +270,10 @@ pub struct PlotDef {
 pub struct ModTest {
     pub power: Vec<Power>,
     pub thresholds: Option<Thresholds>,
-    pub groups: Vec<Group>,
+    pub groups: Groups,
     pub mode: Option<Mode>,
     pub cycle_line: Option<CycleLine>,
     pub test_lines: Vec<TestLine>,
-    pub plot_dir: Vec<PlotDirective>,
+    pub plot_dirs: Vec<PlotDirective>,
+    pub plot_defs: Vec<PlotDef>,
 }

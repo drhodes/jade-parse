@@ -29,4 +29,6 @@ pub mod port;
 pub mod terminal;
 pub mod text;
 
+// test aspect
+pub mod groups;
 pub mod test_mod;
