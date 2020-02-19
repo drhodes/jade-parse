@@ -65,7 +65,7 @@ impl ModTest {
     pub fn from_file(p: &Path) -> E<ModTest> {
         match std::fs::read_to_string(p) {
             Ok(s) => Self::from_str(&s),
-            Err(msg) => bailfmt!("Can't open test: {:?}", msg),
+            Err(msg) => bailfmt!("Can't open test: {}", msg),
         }
     }
 
@@ -75,7 +75,7 @@ impl ModTest {
         }
         // pattern (<ident> <space>* <equals> <space>* <num>)+
 
-        let pat_str = format!("({}){}{}{}({})", IDENT, SPACE, "=", SPACE, NUMBER);
+        let pat_str = format!("({}){}={}({})", IDENT, SPACE, SPACE, NUMBER);
         let pat = regex::Regex::new(&pat_str).unwrap();
         let caps = pat.captures_iter(s);
 
