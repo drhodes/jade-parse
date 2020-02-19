@@ -49,7 +49,7 @@ impl ModTest {
             } else if line.starts_with(".mode") {
                 mode = Some(Self::parse_mode(line)?);
             } else if line.starts_with(".cycle") {
-                // TODO cycle line parser
+                cycle_line = Some(Self::parse_cycle_line(line)?);
             } else if line.starts_with(".plotdef") {
                 plot_defs.push(Self::parse_plot_def(line)?);
             } else if line.starts_with(".plot ") {
@@ -164,50 +164,85 @@ impl ModTest {
         }
     }
 
-    fn parse_cycle_line(line: &str) -> E<CycleLine> {
-        // .cycle assert inputs tran 99n sample outputs tran 1n
-        if !line.starts_with(".cycle") {
-            bail!("not a cycle directive")
-        } else {
-            let assert_pattern = format!("assert{}({})", ONE_OR_MORE_SPACE, IDENT);
-            let deassert_pattern = format!("deassert{}({})", ONE_OR_MORE_SPACE, IDENT);
-            let sample_pattern = format!("sample{}({})", ONE_OR_MORE_SPACE, IDENT);
-            let tran_pattern = format!("tran{}{}", ONE_OR_MORE_SPACE, DURATION);
-            // TODO SetSignal
+    fn consume_action(line: &str) -> (E<Action>, &str) {
+        let line = line.trim();
+        // these should be static.
+        let assert_pattern = format!("assert{}({})", ONE_OR_MORE_SPACE, IDENT);
+        let deassert_pattern = format!("deassert{}({})", ONE_OR_MORE_SPACE, IDENT);
+        let sample_pattern = format!("sample{}({})", ONE_OR_MORE_SPACE, IDENT);
+        let tran_pattern = format!("tran{}{}", ONE_OR_MORE_SPACE, DURATION);
 
-            let mut actions: Vec<Action> = vec![];
+        if let Some(cap) = regex::Regex::new(&assert_pattern).unwrap().captures(line) {
+            let span = cap.get(0).unwrap();
+            if span.start() == 0 {
+                let groupname = cap.get(1).unwrap().as_str().to_owned();
+                return (Ok(Action::Assert(groupname)), &line[span.end()..]);
+            }
+        }
 
-            for assert in regex::Regex::new(&assert_pattern).unwrap().captures_iter(line) {
-                if let Some(groupname) = assert.get(1) {
-                    actions.push(Action::Assert(groupname.as_str().to_owned()));
-                }
+        if let Some(cap) = regex::Regex::new(&deassert_pattern).unwrap().captures(line) {
+            let span = cap.get(0).unwrap();
+            if span.start() == 0 {
+                let groupname = cap.get(1).unwrap().as_str().to_owned();
+                return (Ok(Action::Deassert(groupname)), &line[span.end()..]);
             }
-            for deassert in regex::Regex::new(&deassert_pattern).unwrap().captures_iter(line) {
-                if let Some(groupname) = deassert.get(1) {
-                    actions.push(Action::Deassert(groupname.as_str().to_owned()));
-                }
+        }
+
+        if let Some(cap) = regex::Regex::new(&sample_pattern).unwrap().captures(line) {
+            let span = cap.get(0).unwrap();
+            if span.start() == 0 {
+                let groupname = cap.get(1).unwrap().as_str().to_owned();
+                return (Ok(Action::Sample(groupname)), &line[span.end()..]);
             }
-            for sample in regex::Regex::new(&sample_pattern).unwrap().captures_iter(line) {
-                if let Some(groupname) = sample.get(1) {
-                    actions.push(Action::Sample(groupname.as_str().to_owned()));
-                }
-            }
-            for tran in regex::Regex::new(&tran_pattern).unwrap().captures_iter(line) {
-                match (tran.get(1), tran.get(3)) {
+        }
+
+        if let Some(cap) = regex::Regex::new(&tran_pattern).unwrap().captures(line) {
+            let span = cap.get(0).unwrap();
+            if span.start() == 0 {
+                match (cap.get(1), cap.get(3)) {
                     (Some(num), Some(unit)) => {
                         let n = num.as_str().parse::<f64>().unwrap();
-                        actions.push(Action::Tran(match unit.as_str() {
+                        const msg: &'static str = "Unknown duration unit in .cycle: {:?}";
+                        let action = Action::Tran(match unit.as_str() {
                                                       "u" | "U" => Duration::MicroSecond(n),
                                                       "n" | "N" => Duration::NanoSecond(n),
                                                       "p" | "P" => Duration::PicoSecond(n),
                                                       "f" | "F" => Duration::FemptoSecond(n),
                                                       "a" | "A" => Duration::AttoSecond(n),
                                                       x => {
-                                                          return bailfmt!("Unknown duration unit in .cycle: {:?}", x);
+                                                          return (bailfmt!("{} {}", msg, x), "");
                                                       }
-                                                  }));
+                                                  });
+                        return (Ok(action), &line[span.end()..]);
                     }
-                    _ => return bailfmt!("Malformed tran in .cycle {:?}", tran),
+                    _ => return (bailfmt!("Malformed tran in .cycle {:?}", span), ""),
+                }
+            }
+        } else {
+            return (bailfmt!("What's going on here?: {:?}", line), "");
+        }
+
+        todo!();
+    }
+
+    fn parse_cycle_line(line: &str) -> E<CycleLine> {
+        // .cycle assert inputs tran 99n sample outputs tran 1n
+        if !line.starts_with(".cycle") {
+            bail!("not a cycle directive")
+        } else {
+            let mut line = &line[6..];
+            let mut actions: Vec<Action> = vec![];
+            while !line.is_empty() {
+                match Self::consume_action(line) {
+                    (Ok(action), "") => {
+                        actions.push(action);
+                        break;
+                    }
+                    (Ok(action), rest) => {
+                        actions.push(action);
+                        line = rest.trim();
+                    }
+                    (berr, _) => return bail!(berr, "Couldn't parse .cycle directive"),
                 }
             }
             Ok(CycleLine(actions))
@@ -348,9 +383,24 @@ mod tests {
         match ModTest::parse_cycle_line(line) {
             Ok(CycleLine(xs)) => assert_eq!(xs,
                                             vec!(Action::Assert("inputs".to_string()),
-                                                 Action::Tran(Duration::NanoSecond(99.5)),
+                                                 Action::Tran(Duration::NanoSecond(99.0)),
                                                  Action::Sample("outputs".to_string()),
                                                  Action::Tran(Duration::NanoSecond(1.0)))),
+            Err(berr) => panic!("{:?}", berr),
+        }
+    }
+
+    #[test]
+    fn parse_cycle_line_4() {
+        let line = ".cycle tran 1n assert A sample B assert C tran 2n";
+        match ModTest::parse_cycle_line(line) {
+            Ok(CycleLine(xs)) => assert_eq!(xs,
+                                            vec!(Action::Tran(Duration::NanoSecond(1.0)),
+                                                 Action::Assert("A".to_string()),
+                                                 Action::Sample("B".to_string()),
+                                                 Action::Assert("C".to_string()),
+                                                 Action::Tran(Duration::NanoSecond(2.0)))),
+
             Err(berr) => panic!("{:?}", berr),
         }
     }
