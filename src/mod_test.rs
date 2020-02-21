@@ -9,6 +9,7 @@ use std::str::FromStr;
 const IDENT: &str = "[a-zA-Z_][a-zA-Z_0-9]*";
 const SPACE: &str = r#"[\s]*"#;
 const ONE_OR_MORE_SPACE: &str = r#"[\s]+"#;
+const ZERO_OR_MORE_SPACE: &str = r#"[\s]*"#;
 const NUMBER: &str = r#"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?"#;
 const DURATION: &str = r#"([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)([unpfaUNF])"#;
 
@@ -164,6 +165,17 @@ impl ModTest {
         }
     }
 
+    fn parse_bin_val(char: char) -> E<BinVal> {
+        // 'L' => L, // binary low
+        // 'H' => H, // binary high
+        // '0' => L, // binary low
+        // '1' => H, // binary high
+        // 'X' => X, // an unknown or illegal logic value
+        // 'Z' => Z, // not driven, aka "high impedence"
+        // '-' => DontCare,
+        todo!();
+    }
+
     fn consume_action(line: &str) -> (E<Action>, &str) {
         let line = line.trim();
         // these should be static.
@@ -171,6 +183,8 @@ impl ModTest {
         let deassert_pattern = format!("deassert{}({})", ONE_OR_MORE_SPACE, IDENT);
         let sample_pattern = format!("sample{}({})", ONE_OR_MORE_SPACE, IDENT);
         let tran_pattern = format!("tran{}{}", ONE_OR_MORE_SPACE, DURATION);
+        let S = ZERO_OR_MORE_SPACE;
+        let set_pattern = format!("({}){}={}({})", IDENT, S, S, NUMBER);
 
         if let Some(cap) = regex::Regex::new(&assert_pattern).unwrap().captures(line) {
             let span = cap.get(0).unwrap();
@@ -218,11 +232,35 @@ impl ModTest {
                     _ => return (bailfmt!("Malformed tran in .cycle {:?}", span), ""),
                 }
             }
-        } else {
-            return (bailfmt!("What's going on here?: {:?}", line), "");
         }
 
-        todo!();
+        // OK, this is involved. Need to split on =, take the left
+        // side, trim and see if it parses as a sig.
+
+        let parts: Vec<&str> = line.split("=").collect();
+        if parts.len() > 1 {
+            match sig::parse_sig(parts[0].trim()) {
+                Some(sig) => {
+                    // grab the right hand side and parse an identifier
+                    let p = format!(r#"[\s]*({})"#, NUMBER);
+                    if let Some(cap) = regex::Regex::new(&p).unwrap().captures(parts[1]) {
+                        let span = cap.get(0).unwrap();
+                        if span.start() == 0 {
+                            // calculate num chars consumed.
+                            // the + 1 in the middle counts the equal sign
+                            let n = parts[0].len() + 1 + span.end();
+
+                            let number = cap.get(1).unwrap().as_str().parse::<f64>().unwrap();
+                            return (Ok(Action::SetSignal(sig, number)), &line[n..]);
+                        }
+                    }
+                }
+                None => return (bailfmt!("bad signal found: {:?}", line), ""),
+            }
+        } else {
+            return (bailfmt!("unknown action in .cycle: {:?}", line), "");
+        }
+        return (bailfmt!("What's going on here?: {:?}", line), "");
     }
 
     fn parse_cycle_line(line: &str) -> E<CycleLine> {
@@ -401,6 +439,18 @@ mod tests {
                                                  Action::Assert("C".to_string()),
                                                  Action::Tran(Duration::NanoSecond(2.0)))),
 
+            Err(berr) => panic!("{:?}", berr),
+        }
+    }
+
+    #[test]
+    fn parse_cycle_line_5() {
+        let line = ".cycle CLK=1";
+        match ModTest::parse_cycle_line(line) {
+            Ok(CycleLine(xs)) => {
+                let sig = sig::parse_sig("CLK").unwrap();
+                assert_eq!(xs, vec!(Action::SetSignal(sig, 1.0)));
+            }
             Err(berr) => panic!("{:?}", berr),
         }
     }
