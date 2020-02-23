@@ -19,7 +19,6 @@ impl Wire {
             }
             return bailfmt!("HUH. json wire array has more than 3 elements: {:?}", xs.len());
         } else {
-            let e: E<Wire> = bail!("not a wire");
             return bail!("not a wire");
         }
     }

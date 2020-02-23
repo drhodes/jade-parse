@@ -1,7 +1,6 @@
 use crate::common::*;
 use crate::types::*;
 use serde_json::Value;
-use std::slice::Iter;
 
 impl Circle {
     pub fn from_value(val: &Value) -> E<Circle> {

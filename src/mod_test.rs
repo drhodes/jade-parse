@@ -1,15 +1,10 @@
-use crate::common::*;
 use crate::sig;
 use crate::types::*;
-use regex::Regex;
-use std::collections::HashMap;
 use std::path::Path;
-use std::str::FromStr;
 
 const IDENT: &str = "[a-zA-Z_][a-zA-Z_0-9]*";
 const SPACE: &str = r#"[\s]*"#;
 const ONE_OR_MORE_SPACE: &str = r#"[\s]+"#;
-const ZERO_OR_MORE_SPACE: &str = r#"[\s]*"#;
 const NUMBER: &str = r#"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?"#;
 const DURATION: &str = r#"([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)([unpfaUNF])"#;
 
@@ -165,17 +160,6 @@ impl ModTest {
         }
     }
 
-    fn parse_bin_val(char: char) -> E<BinVal> {
-        // 'L' => L, // binary low
-        // 'H' => H, // binary high
-        // '0' => L, // binary low
-        // '1' => H, // binary high
-        // 'X' => X, // an unknown or illegal logic value
-        // 'Z' => Z, // not driven, aka "high impedence"
-        // '-' => DontCare,
-        todo!();
-    }
-
     fn consume_action(line: &str) -> (E<Action>, &str) {
         let line = line.trim();
         // these should be static.
@@ -183,8 +167,6 @@ impl ModTest {
         let deassert_pattern = format!("deassert{}({})", ONE_OR_MORE_SPACE, IDENT);
         let sample_pattern = format!("sample{}({})", ONE_OR_MORE_SPACE, IDENT);
         let tran_pattern = format!("tran{}{}", ONE_OR_MORE_SPACE, DURATION);
-        let S = ZERO_OR_MORE_SPACE;
-        let set_pattern = format!("({}){}={}({})", IDENT, S, S, NUMBER);
 
         if let Some(cap) = regex::Regex::new(&assert_pattern).unwrap().captures(line) {
             let span = cap.get(0).unwrap();
@@ -216,7 +198,7 @@ impl ModTest {
                 match (cap.get(1), cap.get(3)) {
                     (Some(num), Some(unit)) => {
                         let n = num.as_str().parse::<f64>().unwrap();
-                        const msg: &'static str = "Unknown duration unit in .cycle: {:?}";
+                        const MSG: &'static str = "Unknown duration unit in .cycle: {:?}";
                         let action = Action::Tran(match unit.as_str() {
                                                       "u" | "U" => Duration::MicroSecond(n),
                                                       "n" | "N" => Duration::NanoSecond(n),
@@ -224,7 +206,7 @@ impl ModTest {
                                                       "f" | "F" => Duration::FemptoSecond(n),
                                                       "a" | "A" => Duration::AttoSecond(n),
                                                       x => {
-                                                          return (bailfmt!("{} {}", msg, x), "");
+                                                          return (bailfmt!("{} {}", MSG, x), "");
                                                       }
                                                   });
                         return (Ok(action), &line[span.end()..]);
@@ -287,7 +269,7 @@ impl ModTest {
         }
     }
 
-    fn parse_test_line(mut s: &str) -> E<TestLine> {
+    fn parse_test_line(s: &str) -> E<TestLine> {
         let parse_chars = |cs: &str| -> E<Vec<BinVal>> {
             let mut binvals = vec![];
             for c in cs.chars() {

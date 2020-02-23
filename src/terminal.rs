@@ -1,7 +1,6 @@
 use serde_json::Value;
 
 use crate::common::*;
-use crate::sig;
 use crate::types::*;
 
 impl Terminal {
@@ -11,8 +10,7 @@ impl Terminal {
         let coord3: Coord3 = match val_iter.next() {
             Some(c) => serde_json::from_value::<Coord3>(c.clone())?,
             None => {
-                return bailfmt!("Terminal expects 2 elements, a location and properties object, got: {:?}",
-                                val);
+                return bailfmt!("Terminal expects 2 elements, a location and properties object, got: {:?}", val);
             }
         };
 

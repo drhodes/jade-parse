@@ -1,6 +1,3 @@
-use serde::{Deserialize, Serialize};
-use serde_repr::*;
-use std::error::Error;
 use std::fmt;
 use std::fmt::Debug;
 
@@ -9,11 +6,7 @@ pub type E<T> = Result<T, Bail>;
 #[macro_export]
 macro_rules! bail {
     ($msg:expr) => {
-        Err(Bail { line: line!(),
-                   col: column!(),
-                   msg: $msg.to_string(),
-                   file: file!().to_string(),
-                   more: None })
+        Err(Bail { line: line!(), col: column!(), msg: $msg.to_string(), file: file!().to_string(), more: None })
     };
     ($ebail:expr, $msg:expr) => {
         Err(Bail { line: line!(),

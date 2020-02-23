@@ -3,8 +3,6 @@ pub use crate::bail::*;
 use serde::{Deserialize, Serialize};
 use serde_repr::*;
 use std::collections::HashMap;
-use std::error::Error;
-use std::fmt;
 use std::fmt::Debug;
 use std::path;
 

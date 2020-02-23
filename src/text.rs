@@ -2,7 +2,6 @@ use serde_json::Value;
 
 use crate::common::*;
 use crate::types::*;
-use std::convert::From;
 
 impl Text {
     pub fn from_value(val: &Value) -> E<Text> {
@@ -24,11 +23,8 @@ impl Text {
                     return bail!("expected a string but didn't find anything");
                 };
 
-                let font = if let Some(Value::String(font_str)) = o.get("font") {
-                    Some(font_str.to_string())
-                } else {
-                    None
-                };
+                let font =
+                    if let Some(Value::String(font_str)) = o.get("font") { Some(font_str.to_string()) } else { None };
 
                 return Ok(Text { coord3, text, font });
             }
@@ -52,9 +48,8 @@ mod tests {
     #[test]
     fn text1() {
         let coord3 = Coord3 { x: 0, y: 0, r: Rot0 };
-        let expect = Text { coord3: coord3,
-                            text: "memories of green".to_string(),
-                            font: Some("bladerunner".to_string()) };
+        let expect =
+            Text { coord3: coord3, text: "memories of green".to_string(), font: Some("bladerunner".to_string()) };
         let val = json!(["text", [0,0,0], {"text": "memories of green", "font": "bladerunner"}]);
         let got: Text = Text::from_value(&val).unwrap();
         assert_eq!(expect, got);
